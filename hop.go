@@ -30,7 +30,13 @@ func NewProgram(template string) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Collect functions
+
+	// Use typechecker to handle function collection and type checking
+	_, err = typechecker.InferTypes(parseResult.Root, parseResult.NodePositions)
+	if err != nil {
+		return nil, err
+	}
+
 	functions := map[string]*html.Node{}
 	for c := range parseResult.Root.ChildNodes() {
 		if c.Type == html.ElementNode && c.Data == "function" {
@@ -40,18 +46,11 @@ func NewProgram(template string) (*Program, error) {
 					name = attr.Val
 				}
 			}
-			if name == "" {
-				return nil, fmt.Errorf("function is missing attribute 'name'")
-			}
 			functions[name] = c
 		}
 	}
-	t := &Program{root: parseResult.Root, functions: functions}
-	_, err = typechecker.InferTypes(functions, parseResult.NodePositions)
-	if err != nil {
-		return nil, err
-	}
-	return t, nil
+
+	return &Program{root: parseResult.Root, functions: functions}, nil
 }
 
 // ExecuteFunction executes a specific function from the template with the given parameters

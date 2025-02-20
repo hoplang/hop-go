@@ -186,11 +186,31 @@ func (tc *TypeChecker) unify(t1, t2 TypeExpr) error {
 }
 
 // InferTypes infers the types of all functions of a template.
-func InferTypes(functions map[string]*html.Node, positions map[*html.Node]*parser.NodePosition) (map[string]TypeExpr, error) {
+func InferTypes(root *html.Node, positions map[*html.Node]*parser.NodePosition) (map[string]TypeExpr, error) {
+	// Collect functions
+	functions := map[string]*html.Node{}
+	for c := range root.ChildNodes() {
+		if c.Type == html.ElementNode && c.Data == "function" {
+			var name string
+			for _, attr := range c.Attr {
+				if attr.Key == "name" {
+					name = attr.Val
+				}
+			}
+			if name == "" {
+				return nil, fmt.Errorf("function is missing attribute 'name'")
+			}
+			functions[name] = c
+		}
+	}
+
+	// Sort functions topologically
 	sortedFunctions, err := toposort.TopologicalSort(functions)
 	if err != nil {
 		return nil, err
 	}
+
+	// Type check functions
 	tc := NewTypeChecker(positions)
 	for _, name := range sortedFunctions {
 		function := functions[name]
