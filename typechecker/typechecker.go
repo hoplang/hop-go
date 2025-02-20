@@ -100,6 +100,11 @@ func NewTypeChecker(positions map[*html.Node]*parser.NodePosition) *TypeChecker 
 	}
 }
 
+func (tc *TypeChecker) NewVar() *TypeVar {
+	tc.nextVar++
+	return &TypeVar{Name: fmt.Sprintf("t%d", tc.nextVar)}
+}
+
 // Helper to create type errors with position information
 func (tc *TypeChecker) newError(node *html.Node, format string, args ...interface{}) *TypeError {
 	pos := parser.Position{Line: 0, Column: 0}
@@ -110,11 +115,6 @@ func (tc *TypeChecker) newError(node *html.Node, format string, args ...interfac
 		Pos:     pos,
 		Context: fmt.Sprintf(format, args...),
 	}
-}
-
-func (tc *TypeChecker) NewVar() *TypeVar {
-	tc.nextVar++
-	return &TypeVar{Name: fmt.Sprintf("t%d", tc.nextVar)}
 }
 
 // unify attempts to unify two types
@@ -185,46 +185,6 @@ func (tc *TypeChecker) unify(t1, t2 TypeExpr) error {
 	return fmt.Errorf("cannot unify %v with %v", t1, t2)
 }
 
-// typecheckLookup type checks a lookup inside a scope.
-//
-// E.g. given a scope {foo: ?t1} and a path "foo.bar" it will unify
-// {foo: ?t1} and {foo: {bar: ?t2}} yielding {foo: {bar: ?t2}} as the
-// new state for the scope. It then returns ?t2.
-func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr) (TypeExpr, error) {
-	parts, err := parser.ParsePath(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if parts[0].IsArrayRef {
-		return nil, &TypeError{Context: fmt.Sprintf("unexpected array-index")}
-	}
-
-	currentType, exists := scope[parts[0].Value]
-	if !exists {
-		return nil, &TypeError{Context: fmt.Sprintf("undefined variable '%s'", parts[0].Value)}
-	}
-
-	for _, comp := range parts[1:] {
-		if comp.IsArrayRef {
-			arrayType := &ArrayType{ElementType: tc.NewVar()}
-			if err := tc.unify(currentType, arrayType); err != nil {
-				return nil, &TypeError{Context: fmt.Sprintf("cannot index non-array value: %s", err)}
-			}
-			currentType = arrayType.ElementType
-		} else {
-			fieldType := tc.NewVar()
-			objType := &ObjectType{Fields: map[string]TypeExpr{comp.Value: fieldType}}
-			if err := tc.unify(currentType, objType); err != nil {
-				return nil, &TypeError{Context: fmt.Sprintf("cannot access field '%s': %s", comp.Value, err)}
-			}
-			currentType = fieldType
-		}
-	}
-
-	return currentType, nil
-}
-
 // InferTypes infers the types of all functions of a template.
 func InferTypes(functions map[string]*html.Node, positions map[*html.Node]*parser.NodePosition) (map[string]TypeExpr, error) {
 	sortedFunctions, err := toposort.TopologicalSort(functions)
@@ -266,10 +226,45 @@ func (tc *TypeChecker) typecheckNode(n *html.Node, s map[string]TypeExpr) error 
 	return nil
 }
 
+func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr, node *html.Node) (TypeExpr, error) {
+	parts, err := parser.ParsePath(path)
+	if err != nil {
+		return nil, tc.newError(node, "invalid path: %s", err)
+	}
+
+	if parts[0].IsArrayRef {
+		return nil, tc.newError(node, "unexpected array-index")
+	}
+
+	currentType, exists := scope[parts[0].Value]
+	if !exists {
+		return nil, tc.newError(node, "undefined variable '%s'", parts[0].Value)
+	}
+
+	for _, comp := range parts[1:] {
+		if comp.IsArrayRef {
+			arrayType := &ArrayType{ElementType: tc.NewVar()}
+			if err := tc.unify(currentType, arrayType); err != nil {
+				return nil, tc.newError(node, "cannot index non-array value: %s", err)
+			}
+			currentType = arrayType.ElementType
+		} else {
+			fieldType := tc.NewVar()
+			objType := &ObjectType{Fields: map[string]TypeExpr{comp.Value: fieldType}}
+			if err := tc.unify(currentType, objType); err != nil {
+				return nil, tc.newError(node, "cannot access field '%s': %s", comp.Value, err)
+			}
+			currentType = fieldType
+		}
+	}
+
+	return currentType, nil
+}
+
 func (tc *TypeChecker) typecheckNative(n *html.Node, s map[string]TypeExpr) error {
 	for _, attr := range n.Attr {
 		if attr.Key == "inner-text" || strings.HasPrefix(attr.Key, "attr-") {
-			exprType, err := tc.typecheckLookup(attr.Val, s)
+			exprType, err := tc.typecheckLookup(attr.Val, s, n)
 			if err != nil {
 				return err
 			}
@@ -282,7 +277,7 @@ func (tc *TypeChecker) typecheckNative(n *html.Node, s map[string]TypeExpr) erro
 			}
 
 			if err := tc.unify(exprType, stringOrNumber); err != nil {
-				return &TypeError{Context: fmt.Sprintf("invalid type for %s binding: %s", attr.Key, err)}
+				return tc.newError(n, "invalid type for %s binding: %s", attr.Key, err)
 			}
 		}
 	}
@@ -298,8 +293,21 @@ func (tc *TypeChecker) typecheckFragment(n *html.Node, s map[string]TypeExpr) er
 	for _, attr := range n.Attr {
 		switch attr.Key {
 		case "inner-text":
+			exprType, err := tc.typecheckLookup(attr.Val, s, n)
+			if err != nil {
+				return err
+			}
+			stringOrNumber := &UnionType{
+				Types: []TypeExpr{
+					PrimitiveType("string"),
+					PrimitiveType("number"),
+				},
+			}
+			if err := tc.unify(exprType, stringOrNumber); err != nil {
+				return tc.newError(n, "invalid type for inner-text: %s", err)
+			}
 		default:
-			return &TypeError{Context: fmt.Sprintf("unrecognized attribute '%s' in %s", attr.Key, n.Data)}
+			return tc.newError(n, "unrecognized attribute '%s' in %s", attr.Key, n.Data)
 		}
 	}
 	for c := range n.ChildNodes() {
@@ -327,7 +335,7 @@ func (tc *TypeChecker) typecheckFor(n *html.Node, s map[string]TypeExpr) error {
 		return tc.newError(n, "for loop missing 'each' attribute")
 	}
 
-	iterType, err := tc.typecheckLookup(each, s)
+	iterType, err := tc.typecheckLookup(each, s, n)
 	if err != nil {
 		return err
 	}
@@ -357,21 +365,21 @@ func (tc *TypeChecker) typecheckIf(n *html.Node, s map[string]TypeExpr) error {
 		case "true":
 			cond = attr.Val
 		default:
-			return &TypeError{Context: fmt.Sprintf("unrecognized attribute '%s' in %s", attr.Key, n.Data)}
+			return tc.newError(n, "unrecognized attribute '%s' in %s", attr.Key, n.Data)
 		}
 	}
 
 	if cond == "" {
-		return &TypeError{Context: fmt.Sprintf("empty condition in if")}
+		return tc.newError(n, "empty condition in if")
 	}
 
-	condType, err := tc.typecheckLookup(cond, s)
+	condType, err := tc.typecheckLookup(cond, s, n)
 	if err != nil {
 		return err
 	}
 
 	if err := tc.unify(condType, PrimitiveType("boolean")); err != nil {
-		return &TypeError{Context: fmt.Sprintf("condition must be boolean: %s", err)}
+		return tc.newError(n, "condition must be boolean: %s", err)
 	}
 
 	for c := range n.ChildNodes() {
@@ -385,22 +393,22 @@ func (tc *TypeChecker) typecheckIf(n *html.Node, s map[string]TypeExpr) error {
 func (tc *TypeChecker) typecheckRender(n *html.Node, s map[string]TypeExpr) error {
 	functionName, ok := getAttribute(n, "function")
 	if !ok {
-		return &TypeError{Context: "render is missing attribute 'function'"}
+		return tc.newError(n, "render is missing attribute 'function'")
 	}
 
 	params, found := getAttribute(n, "params")
 	if found {
-		paramsType, err := tc.typecheckLookup(params, s)
+		paramsType, err := tc.typecheckLookup(params, s, n)
 		if err != nil {
 			return err
 		}
 
 		if err := tc.unify(paramsType, tc.functionParams[functionName]); err != nil {
-			return &TypeError{Context: fmt.Sprintf("invalid parameter type for function '%s': %s", functionName, err)}
+			return tc.newError(n, "invalid parameter type for function '%s': %s", functionName, err)
 		}
 	} else {
 		if tc.functionParams[functionName] != PrimitiveType("void") {
-			return &TypeError{Context: fmt.Sprintf("missing attribute params in render call for %s", functionName)}
+			return tc.newError(n, "missing attribute params in render call for %s", functionName)
 		}
 	}
 
