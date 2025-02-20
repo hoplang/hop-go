@@ -1,9 +1,9 @@
 -- template --
 <function name="foo" params-as="p">
-	<render function="bar" params="p"></div>
+	<render function="bar" params="p"></render>
 </function>
 <function name="bar" params-as="p">
-	<render function="foo" params="p"></div>
+	<render function="foo" params="p"></render>
 </function>
 -- error --
 cycle detected

@@ -3,7 +3,7 @@
 -- template --
 <function name="item-card" params-as="p">
 	<div class="outer">
-		<children>
+		<children></children>
 	</div>
 </function>
 <function name="main" params-as="p">

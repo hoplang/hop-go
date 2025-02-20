@@ -26,13 +26,13 @@ type Function struct {
 // NewProgram takes a template string, parses it and returns
 // a program or fails.
 func NewProgram(template string) (*Program, error) {
-	root, err := parser.Parse(template)
+	parseResult, err := parser.Parse(template)
 	if err != nil {
 		return nil, err
 	}
 	// Collect functions
 	functions := map[string]*html.Node{}
-	for c := range root.ChildNodes() {
+	for c := range parseResult.Root.ChildNodes() {
 		if c.Type == html.ElementNode && c.Data == "function" {
 			var name string
 			for _, attr := range c.Attr {
@@ -46,7 +46,7 @@ func NewProgram(template string) (*Program, error) {
 			functions[name] = c
 		}
 	}
-	t := &Program{root: root, functions: functions}
+	t := &Program{root: parseResult.Root, functions: functions}
 	_, err = typechecker.InferTypes(functions)
 	if err != nil {
 		return nil, err

@@ -2,7 +2,7 @@
 { "bar": "baz" }
 -- template --
 <function name="main" params-as="foo">
-	<fragment inner-text="foo.bar">
+	<fragment inner-text="foo.bar"></fragment>
 </function>
 -- html --
 baz

@@ -15,7 +15,7 @@
 		<render function="logo"></render>
 		<ul>
 			<li><a href="/">Home</a></li>
-		<ul>
+		</ul>
 	</div>
 </function>
 <function name="main">
@@ -32,5 +32,5 @@
 	</svg>
 	<ul>
 		<li><a href="/">Home</a></li>
-	<ul>
+	</ul>
 </div>

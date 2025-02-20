@@ -5,13 +5,13 @@
 			<if true="k">
 			</if>
 		</for>
-	</if>
+	</for>
 	<for each="i" as="p">
 		<for each="p.s.t" as="k">
 			<for each="k">
 			</for>
 		</for>
-	</if>
+	</for>
 </function>
 -- error --
 type error: cannot iterate over non-array value
