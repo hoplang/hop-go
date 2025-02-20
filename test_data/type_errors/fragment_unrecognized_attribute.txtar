@@ -1,0 +1,8 @@
+-- template --
+<function name="main">
+	<fragment inner-tex="bar">
+	  <div></div>
+	</fragment>
+</function>
+-- error --
+type error: unrecognized attribute 'inner-tex' in fragment

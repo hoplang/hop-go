@@ -1,0 +1,42 @@
+-- json --
+{
+    "items": [
+      {
+        "title": "First Item"
+      },
+      {
+        "title": "Second Item"
+      }
+    ],
+    "other_items": [
+      {
+        "title": "Other Item 1"
+      },
+      {
+        "title": "Other Item 2"
+      }
+    ]
+  }
+-- template --
+<function name="item-card" params-as="item">
+  <div inner-text="item.title"></div>
+</function>
+
+<function name="list-item" params-as="item">
+  <render function="item-card" params="item"></render>
+</function>
+
+<function name="list-section" params-as="items">
+  <render function="list-item" params="items[0]"></render>
+  <render function="list-item" params="items[1]"></render>
+</function>
+
+<function name="main" params-as="data">
+  <render function="list-section" params="data.items"></render>
+  <render function="list-section" params="data.other_items"></render>
+</function>
+-- html --
+<div>First Item</div>
+<div>Second Item</div>
+<div>Other Item 1</div>
+<div>Other Item 2</div>

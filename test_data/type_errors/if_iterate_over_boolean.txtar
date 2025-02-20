@@ -1,0 +1,9 @@
+-- template --
+<function name="main" params-as="data">
+	<if true="data">
+		<for each="data" as="d">
+		</for>
+	</if>
+</function>
+-- error --
+type error: cannot iterate over non-array value

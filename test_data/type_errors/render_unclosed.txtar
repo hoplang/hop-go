@@ -1,0 +1,9 @@
+-- json --
+{
+}
+-- template --
+<function name="main">
+	<render>
+</function>
+-- error --
+type error: render is missing attribute 'function'

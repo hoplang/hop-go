@@ -1,0 +1,14 @@
+-- json --
+[
+	{"title": "foo", "classes": "px-2"},
+	{"title": "bar", "classes": "py-2"}
+]
+-- template --
+<function name="main" params-as="items">
+	<for each="items" as="item">
+		<div attr-class="item.classes" inner-text="item.title"></div>
+	</for>
+</function>
+-- html --
+<div class="px-2">foo</div>
+<div class="py-2">bar</div>

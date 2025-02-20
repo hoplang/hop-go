@@ -1,0 +1,7 @@
+-- template --
+<function name="main" params-as="data">
+    <div attr-class="data.field.subfield.subfield"></div>
+    <div attr-class="data.field.subfield"></div>
+</function>
+-- error --
+type error: invalid type for attr-class binding

@@ -1,0 +1,17 @@
+-- json --
+[
+	{
+		"bar": ["baz", "bar"]
+	}
+]
+-- template --
+<function name="main" params-as="foo">
+	<for each="foo" as="i">
+		<for each="i.bar" as="j">
+			<div class="bar" inner-text="j"></div>
+		</for>
+	</for>
+</function>
+-- html --
+<div class="bar">baz</div>
+<div class="bar">bar</div>

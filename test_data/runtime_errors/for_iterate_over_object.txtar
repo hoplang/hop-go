@@ -1,0 +1,12 @@
+-- json --
+{
+  "bar": {"foo": "bar"}
+}
+-- template --
+<function name="main" params-as="foo">
+	<for each="foo.bar" as="b">
+	  <div></div>
+	</for>
+</function>
+-- error --
+can not iterate over '{"foo":"bar"}' of type object

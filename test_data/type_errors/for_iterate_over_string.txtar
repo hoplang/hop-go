@@ -1,0 +1,7 @@
+-- template --
+<function name="main" params-as="foo">
+	<div attr-class="foo"></div>
+	<for each="foo" as="f"></for>
+</function>
+-- error --
+type error: cannot iterate over non-array value

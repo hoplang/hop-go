@@ -1,0 +1,8 @@
+-- json --
+[]
+-- template --
+<function name="main" params-as="items">
+	<div inner-text="items[0]"></div>
+</function>
+-- error --
+array index out of bounds

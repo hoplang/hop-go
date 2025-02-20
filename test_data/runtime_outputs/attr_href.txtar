@@ -1,0 +1,14 @@
+-- json --
+[
+	"https://example.com/foo",
+	"https://example.com/bar"
+]
+-- template --
+<function name="main" params-as="links">
+	<for each="links" as="link">
+		<a attr-href="link">click me</a>
+	</for>
+</function>
+-- html --
+<a href="https://example.com/foo">click me</a>
+<a href="https://example.com/bar">click me</a>

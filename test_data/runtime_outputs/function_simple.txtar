@@ -1,0 +1,22 @@
+-- json --
+[
+	{"title": "foo"},
+	{"title": "bar"}
+]
+-- template --
+<function name="item-card" params-as="item">
+  <div>
+    <div class="p-2" inner-text="item.title"></div>
+  </div>
+</function>
+<function name="main" params-as="items">
+	<render function="item-card" params="items[0]"></render>
+	<render function="item-card" params="items[1]"></render>
+</function>
+-- html --
+<div>
+  <div class="p-2">foo</div>
+</div>
+<div>
+  <div class="p-2">bar</div>
+</div>

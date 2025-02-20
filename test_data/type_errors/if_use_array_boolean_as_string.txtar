@@ -1,0 +1,8 @@
+-- template --
+<function name="main" params-as="data">
+	<if true="data[0]">
+	</if>
+	<div attr-class="data[1]"></div>
+</function>
+-- error --
+type error: invalid type for attr-class binding

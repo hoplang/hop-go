@@ -1,0 +1,12 @@
+-- template --
+<function name="main" params-as="data">
+    <div attr-class="data.x.y"></div>
+    <render function="other" params="data.x"></render>
+</function>
+<function name="other" params-as="obj">
+    <div attr-class="obj.z"></div>
+    <if true="obj.y.valid">
+    </if>
+</function>
+-- error --
+type error: invalid parameter type for function 'other'

@@ -1,0 +1,16 @@
+Test for loop where `as`-attribute is omitted.
+-- json --
+[ "bar", "baz" ]
+-- template --
+<function name="main" params-as="foo">
+	<div class="foo">
+		<for each="foo">
+			<div class="bar">test</div>
+		</for>
+	</div>
+</function>
+-- html --
+<div class="foo">
+	<div class="bar">test</div>
+	<div class="bar">test</div>
+</div>

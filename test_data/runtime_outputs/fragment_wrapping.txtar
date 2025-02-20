@@ -1,0 +1,12 @@
+-- json --
+{}
+-- template --
+<function name="main">
+	<fragment>
+		<fragment>
+			<div>hello world</div>
+		</fragment>
+	</fragment>
+</function>
+-- html --
+<div>hello world</div>

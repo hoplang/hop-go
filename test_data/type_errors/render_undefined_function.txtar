@@ -1,0 +1,6 @@
+-- template --
+<function name="main">
+	<render function="test">
+</function>
+-- error --
+type error: function 'main' depends on undefined function 'test'

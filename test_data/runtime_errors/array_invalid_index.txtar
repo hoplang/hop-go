@@ -1,0 +1,8 @@
+-- json --
+[1,2,3]
+-- template --
+<function name="main" params-as="items">
+	<div inner-text="items[k]"></div>
+</function>
+-- error --
+invalid array index

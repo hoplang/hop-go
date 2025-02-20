@@ -1,0 +1,8 @@
+-- template --
+<function name="main">
+	<if tru="bar">
+		<div></div>
+	</if>
+</function>
+-- error --
+type error: unrecognized attribute 'tru' in if

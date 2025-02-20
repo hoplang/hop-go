@@ -1,0 +1,8 @@
+-- json --
+{ "bar": "baz" }
+-- template --
+<function name="main" params-as="foo">
+	<fragment inner-text="foo.bar">
+</function>
+-- html --
+baz

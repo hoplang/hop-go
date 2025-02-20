@@ -1,0 +1,8 @@
+-- template --
+<function name="main">
+	<if true="bar">
+		<div></div>
+	</if>
+</function>
+-- error --
+type error: undefined variable 'bar'

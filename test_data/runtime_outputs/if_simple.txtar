@@ -1,0 +1,16 @@
+-- json --
+{
+  "foo": true,
+  "bar": false
+}
+-- template --
+<function name="main" params-as="params">
+	<if true="params.bar">
+		<div>bar</div>
+	</if>
+	<if true="params.foo">
+		<div>foo</div>
+	</if>
+</function>
+-- html --
+<div>foo</div>

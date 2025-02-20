@@ -1,0 +1,7 @@
+-- template --
+<function name="main" params-as="data">
+    <div attr-class="data.field.subfield[0]"></div>
+    <div attr-class="data.field.subfield"></div>
+</function>
+-- error --
+type error

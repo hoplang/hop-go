@@ -1,0 +1,17 @@
+Test that the inner-most div has access to the global scope.
+-- json --
+{
+  "foo": [ ["baz", "bar"] ],
+  "t": "baz"
+}
+-- template --
+<function name="main" params-as="p">
+	<for each="p.foo" as="i">
+		<for each="i" as="j">
+			<div class="bar" inner-text="p.t"></div>
+		</for>
+	</for>
+</function>
+-- html --
+<div class="bar">baz</div>
+<div class="bar">baz</div>

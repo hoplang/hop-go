@@ -1,0 +1,8 @@
+-- template --
+<function name="main">
+	<for>
+	  <div></div>
+	</for>
+</function>
+-- error --
+type error: for loop missing 'each' attribute

@@ -1,0 +1,31 @@
+-- json --
+[
+	{ "title": "Section 1", "items": ["Item 1.1", "Item 1.2"] },
+	{ "title": "Section 2", "items": ["Item 2.1", "Item 2.2"] }
+]
+-- template --
+<function name="main" params-as="sections">
+	<div>
+		<for each="sections" as="section">
+			<div>
+				<h2 inner-text="section.title"></h2>
+				<for each="section.items" as="item">
+					<p inner-text="item"></p>
+				</for>
+			</div>
+		</for>
+	</div>
+</function>
+-- html --
+<div>
+	<div>
+		<h2>Section 1</h2>
+		<p>Item 1.1</p>
+		<p>Item 1.2</p>
+	</div>
+	<div>
+		<h2>Section 2</h2>
+		<p>Item 2.1</p>
+		<p>Item 2.2</p>
+	</div>
+</div>

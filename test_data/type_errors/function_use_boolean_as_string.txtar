@@ -1,0 +1,12 @@
+-- template --
+<function name="foo" params-as="bar">
+	<div attr-class="bar"></div>
+</function>
+<function name="main" params-as="data">
+	<if true="data">
+	</if>
+	<render function="foo" params="data">
+	</render>
+</function>
+-- error --
+type error: invalid parameter type for function 'foo'

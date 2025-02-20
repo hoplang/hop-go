@@ -1,0 +1,8 @@
+-- json --
+{ "bar": { "baz": "foo" } }
+-- template --
+<function name="main" params-as="foo">
+	<div class="bar" inner-text="foo.bar.baz"></div>
+</function>
+-- html --
+<div class="bar">foo</div>

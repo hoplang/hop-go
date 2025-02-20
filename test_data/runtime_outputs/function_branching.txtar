@@ -1,0 +1,19 @@
+-- json --
+"foo"
+-- template --
+<function name="d" params-as="dp">
+	<div inner-text="dp"></div>
+</function>
+<function name="b" params-as="bp">
+	<render function="d" params="bp"></render>
+</function>
+<function name="c" params-as="cp">
+	<render function="d" params="cp"></render>
+</function>
+<function name="main" params-as="p">
+	<render function="b" params="p"></render>
+	<render function="c" params="p"></render>
+</function>
+-- html --
+<div>foo</div>
+<div>foo</div>

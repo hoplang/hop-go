@@ -1,0 +1,8 @@
+-- template --
+<function name="main">
+	<for eac="bar">
+	  <div></div>
+	</for>
+</function>
+-- error --
+unrecognized attribute 'eac' in for

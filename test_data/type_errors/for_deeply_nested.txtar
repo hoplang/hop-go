@@ -1,0 +1,17 @@
+-- template --
+<function name="main" params-as="i">
+	<for each="i" as="j">
+		<for each="j.s.t" as="k">
+			<if true="k">
+			</if>
+		</for>
+	</if>
+	<for each="i" as="p">
+		<for each="p.s.t" as="k">
+			<for each="k">
+			</for>
+		</for>
+	</if>
+</function>
+-- error --
+type error: cannot iterate over non-array value

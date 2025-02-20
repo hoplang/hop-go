@@ -1,0 +1,12 @@
+-- json --
+{
+  "bar": 20
+}
+-- template --
+<function name="main" params-as="foo">
+	<for each="foo.bar" as="b">
+	  <div></div>
+	</for>
+</function>
+-- error --
+can not iterate over '20' of type number

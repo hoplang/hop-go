@@ -1,0 +1,10 @@
+-- template --
+<function name="main" params-as="i">
+	<for each="i.k" as="x">
+		<div inner-text="i.j"></div>
+		<if true="i.j">
+		</if>
+	</for>
+</function>
+-- error --
+type error: condition must be boolean

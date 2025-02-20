@@ -1,0 +1,11 @@
+-- template --
+<function name="fail2" params-as="items">
+    <for each="items" as="item">
+        <div inner-text="item"></div>
+    </for>
+    <for each="items" as="item">
+        <div inner-text="item.name"></div>
+    </for>
+</function>
+-- error --
+type error: cannot access field 'name'

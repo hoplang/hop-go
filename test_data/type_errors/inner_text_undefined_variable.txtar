@@ -1,0 +1,6 @@
+-- template --
+<function name="main" params-as="items">
+    <div inner-text="item"></div>
+</function>
+-- error --
+type error: undefined variable 'item'

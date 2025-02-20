@@ -1,0 +1,12 @@
+-- template --
+<function name="main" params-as="foo">
+	<for each="foo" as="f">
+		<for each="f" as="k">
+		</for>
+	</for>
+	<for each="foo" as="f">
+		<div attr-class="f"></div>
+	</for>
+</function>
+-- error --
+type error: invalid type for attr-class binding

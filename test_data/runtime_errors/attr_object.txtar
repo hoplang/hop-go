@@ -1,0 +1,8 @@
+-- json --
+{"bar": "baz"}
+-- template --
+<function name="main" params-as="foo">
+	<div attr-class="foo"></div>
+</function>
+-- error --
+can not use '{"bar":"baz"}' of type object as an attribute

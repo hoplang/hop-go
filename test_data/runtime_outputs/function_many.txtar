@@ -1,0 +1,23 @@
+-- json --
+"hello"
+-- template --
+<function name="a" params-as="ap">
+	<div inner-text="ap"></div>
+</function>
+<function name="b" params-as="bp">
+	<render function="a" params="bp"></render>
+</function>
+<function name="c" params-as="cp">
+	<render function="b" params="cp"></render>
+</function>
+<function name="d" params-as="dp">
+	<render function="c" params="dp"></render>
+</function>
+<function name="e" params-as="ep">
+	<render function="d" params="ep"></render>
+</function>
+<function name="main" params-as="p">
+	<render function="e" params="p"></render>
+</function>
+-- html --
+<div>hello</div>

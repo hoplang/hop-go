@@ -1,0 +1,8 @@
+-- template --
+<function name="main">
+	<for each="data">
+	  <div></div>
+	</for>
+</function>
+-- error --
+type error: undefined variable 'data'

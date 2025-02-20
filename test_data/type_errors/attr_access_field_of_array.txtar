@@ -1,0 +1,8 @@
+-- template --
+<function name="main" params-as="foo">
+	<for each="foo" as="f">
+	</for>
+	<div attr-class="foo.bar"></div>
+</function>
+-- error --
+type error: cannot access field 'bar'

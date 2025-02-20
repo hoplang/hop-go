@@ -1,0 +1,24 @@
+-- json --
+[
+	"a",
+	"b",
+	"c"
+]
+-- template --
+<function name="main" params-as="foo">
+	<div>
+		<for each="foo" as="f">
+			<div inner-text="f"></div>
+			<p inner-text="f"></p>
+		</for>
+	</div>
+</function>
+-- html --
+<div>
+	<div>a</div>
+	<p>a</p>
+	<div>b</div>
+	<p>b</p>
+	<div>c</div>
+	<p>c</p>
+</div>
