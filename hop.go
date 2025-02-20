@@ -9,10 +9,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hoplang/hop-go/parser"
 	"golang.org/x/net/html"
 )
 
-type Template struct {
+type Program struct {
 	root      *html.Node
 	functions map[string]*html.Node
 }
@@ -22,19 +23,12 @@ type Function struct {
 	name     string
 }
 
-// Parse takes a template string, parses it and returns
-// a template or fails.
-func Parse(template string) (*Template, error) {
-	root := &html.Node{
-		Type: html.ElementNode,
-		Data: "root",
-	}
-	nodes, err := html.ParseFragment(strings.NewReader(template), root)
+// NewProgram takes a template string, parses it and returns
+// a program or fails.
+func NewProgram(template string) (*Program, error) {
+	root, err := parser.Parse(template)
 	if err != nil {
 		return nil, err
-	}
-	for _, n := range nodes {
-		root.AppendChild(n)
 	}
 	// Collect functions
 	functions := map[string]*html.Node{}
@@ -52,7 +46,7 @@ func Parse(template string) (*Template, error) {
 			functions[name] = c
 		}
 	}
-	t := &Template{root: root, functions: functions}
+	t := &Program{root: root, functions: functions}
 	_, err = t.inferTypes()
 	if err != nil {
 		return nil, err
@@ -60,16 +54,8 @@ func Parse(template string) (*Template, error) {
 	return t, nil
 }
 
-func MustParse(template string) *Template {
-	t, err := Parse(template)
-	if err != nil {
-		panic(err)
-	}
-	return t
-}
-
 // ExecuteFunction executes a specific function from the template with the given parameters
-func (t *Template) ExecuteFunction(w io.Writer, functionName string, data any) error {
+func (t *Program) ExecuteFunction(w io.Writer, functionName string, data any) error {
 	function, exists := t.functions[functionName]
 	if !exists {
 		return fmt.Errorf("no function with name %s in scope", functionName)
@@ -217,7 +203,7 @@ func handleInnerText(symbols map[string]any, path string) (*html.Node, error) {
 //
 // The returned html nodes will have no parent and no siblings and it
 // is thus safe to append them as the child nodes of another HTML node.
-func (t *Template) evaluateNode(n *html.Node, symbols map[string]any) ([]*html.Node, error) {
+func (t *Program) evaluateNode(n *html.Node, symbols map[string]any) ([]*html.Node, error) {
 	if n.Type == html.ElementNode && n.Data == "render" {
 		return t.evaluateRender(n, symbols)
 	}
@@ -238,7 +224,7 @@ func (t *Template) evaluateNode(n *html.Node, symbols map[string]any) ([]*html.N
 
 // evaluateChildren evaluates a `children` tag.
 // <children></children>
-func (t *Template) evaluateChildren(s map[string]any) ([]*html.Node, error) {
+func (t *Program) evaluateChildren(s map[string]any) ([]*html.Node, error) {
 	v, err := lookup("children", s)
 	if err != nil {
 		return nil, err
@@ -254,7 +240,7 @@ func (t *Template) evaluateChildren(s map[string]any) ([]*html.Node, error) {
 
 // evaluateFragment evaluates a `fragment` tag.
 // <fragment inner-text="item.title"></fragment>
-func (t *Template) evaluateFragment(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (t *Program) evaluateFragment(n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) > 1 {
 		panic("Expected fragment to have exactly 0 or 1 attribute after type checking")
 	}
@@ -277,7 +263,7 @@ func (t *Template) evaluateFragment(n *html.Node, s map[string]any) ([]*html.Nod
 // <render function="list" params="item">
 // ...
 // </render>
-func (t *Template) evaluateRender(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (t *Program) evaluateRender(n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) < 1 || len(n.Attr) > 2 {
 		panic("Expected render to have exactly 1 or 2 attributes after type checking")
 	}
@@ -334,7 +320,7 @@ func (t *Template) evaluateRender(n *html.Node, s map[string]any) ([]*html.Node,
 // <if true="item.isActive">
 // ...
 // </if>
-func (t *Template) evaluateIf(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (t *Program) evaluateIf(n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) != 1 {
 		panic("Expected if to have exactly 1 attribute after type checking")
 	}
@@ -366,7 +352,7 @@ func (t *Template) evaluateIf(n *html.Node, s map[string]any) ([]*html.Node, err
 // <for each="items" as="item">
 // ...
 // </for>
-func (t *Template) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (t *Program) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) < 1 || len(n.Attr) > 2 {
 		panic("Expected for to have exactly 1 or 2 attributes after type checking")
 	}
@@ -415,7 +401,7 @@ func (t *Template) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, er
 }
 
 // evaluateNative evaluates a native tag such as a <div>.
-func (t *Template) evaluateNative(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (t *Program) evaluateNative(n *html.Node, s map[string]any) ([]*html.Node, error) {
 	result := html.Node{
 		Type:     n.Type,
 		Data:     n.Data,

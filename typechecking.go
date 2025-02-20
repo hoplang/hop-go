@@ -209,7 +209,7 @@ func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr) (
 }
 
 // inferTypes infers the types of all functions of a template.
-func (t *Template) inferTypes() (map[string]TypeExpr, error) {
+func (t *Program) inferTypes() (map[string]TypeExpr, error) {
 	sortedFunctions, err := toposort.TopologicalSort(t.functions)
 	if err != nil {
 		return nil, err

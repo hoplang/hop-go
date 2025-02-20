@@ -131,7 +131,7 @@ func testTypeError(t *testing.T, filename string) {
 		t.Fatal("Failed to extract expected error")
 	}
 
-	_, err = hop.Parse(string(templateData))
+	_, err = hop.NewProgram(string(templateData))
 	if err == nil {
 		t.Fatalf("Expected error to contain '%s' but got nil", expectedError)
 	}
@@ -186,13 +186,13 @@ func testRuntimeError(t *testing.T, filename string) {
 
 	var buf bytes.Buffer
 
-	tmpl, err := hop.Parse(string(templateData))
+	p, err := hop.NewProgram(string(templateData))
 	if err != nil {
 		t.Fatalf("Expected runtime error but got parse error: %s", err.Error())
 		return
 	}
 
-	err = tmpl.ExecuteFunction(&buf, "main", d)
+	err = p.ExecuteFunction(&buf, "main", d)
 	if err == nil {
 		t.Errorf("Expected runtime error '%s' but got nil", expectedError)
 	}
@@ -244,12 +244,12 @@ func testFile(t *testing.T, filename string) {
 
 	var buf bytes.Buffer
 
-	tmpl, err := hop.Parse(string(templateData))
+	p, err := hop.NewProgram(string(templateData))
 	if err != nil {
 		t.Errorf("Failed to parse template: %s", err)
 	}
 
-	err = tmpl.ExecuteFunction(&buf, "main", d)
+	err = p.ExecuteFunction(&buf, "main", d)
 	if err != nil {
 		t.Errorf("Failed to execute template: %s", err)
 	}
