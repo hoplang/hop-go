@@ -47,7 +47,7 @@ func NewProgram(template string) (*Program, error) {
 		}
 	}
 	t := &Program{root: parseResult.Root, functions: functions}
-	_, err = typechecker.InferTypes(functions)
+	_, err = typechecker.InferTypes(functions, parseResult.NodePositions)
 	if err != nil {
 		return nil, err
 	}

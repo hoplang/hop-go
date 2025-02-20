@@ -5,4 +5,4 @@
 	</for>
 </function>
 -- error --
-unrecognized attribute 'eac' in for
+type error: unrecognized attribute 'eac' in for
