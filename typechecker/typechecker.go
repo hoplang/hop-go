@@ -1,11 +1,12 @@
-package hop
+package typechecker
 
 import (
 	"fmt"
 	"maps"
 	"strings"
 
-	"github.com/hoplang/hop-go/internal/toposort"
+	"github.com/hoplang/hop-go/parser"
+	"github.com/hoplang/hop-go/typechecker/internal/toposort"
 	"golang.org/x/net/html"
 )
 
@@ -174,22 +175,22 @@ func (tc *TypeChecker) unify(t1, t2 TypeExpr) error {
 // {foo: ?t1} and {foo: {bar: ?t2}} yielding {foo: {bar: ?t2}} as the
 // new state for the scope. It then returns ?t2.
 func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr) (TypeExpr, error) {
-	parts, err := parsePath(path)
+	parts, err := parser.ParsePath(path)
 	if err != nil {
 		return nil, err
 	}
 
-	if parts[0].isArrayRef {
+	if parts[0].IsArrayRef {
 		return nil, &TypeError{Context: fmt.Sprintf("unexpected array-index")}
 	}
 
-	currentType, exists := scope[parts[0].value]
+	currentType, exists := scope[parts[0].Value]
 	if !exists {
-		return nil, &TypeError{Context: fmt.Sprintf("undefined variable '%s'", parts[0].value)}
+		return nil, &TypeError{Context: fmt.Sprintf("undefined variable '%s'", parts[0].Value)}
 	}
 
 	for _, comp := range parts[1:] {
-		if comp.isArrayRef {
+		if comp.IsArrayRef {
 			arrayType := &ArrayType{ElementType: tc.NewVar()}
 			if err := tc.unify(currentType, arrayType); err != nil {
 				return nil, &TypeError{Context: fmt.Sprintf("cannot index non-array value: %s", err)}
@@ -197,9 +198,9 @@ func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr) (
 			currentType = arrayType.ElementType
 		} else {
 			fieldType := tc.NewVar()
-			objType := &ObjectType{Fields: map[string]TypeExpr{comp.value: fieldType}}
+			objType := &ObjectType{Fields: map[string]TypeExpr{comp.Value: fieldType}}
 			if err := tc.unify(currentType, objType); err != nil {
-				return nil, &TypeError{Context: fmt.Sprintf("cannot access field '%s': %s", comp.value, err)}
+				return nil, &TypeError{Context: fmt.Sprintf("cannot access field '%s': %s", comp.Value, err)}
 			}
 			currentType = fieldType
 		}
@@ -209,14 +210,14 @@ func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr) (
 }
 
 // inferTypes infers the types of all functions of a template.
-func (t *Program) inferTypes() (map[string]TypeExpr, error) {
-	sortedFunctions, err := toposort.TopologicalSort(t.functions)
+func InferTypes(functions map[string]*html.Node) (map[string]TypeExpr, error) {
+	sortedFunctions, err := toposort.TopologicalSort(functions)
 	if err != nil {
 		return nil, err
 	}
 	tc := NewTypeChecker()
 	for _, name := range sortedFunctions {
-		function := t.functions[name]
+		function := functions[name]
 		s := map[string]TypeExpr{}
 		if paramsAs, found := getAttribute(function, "params-as"); found {
 			tc.functionParams[name] = tc.NewVar()

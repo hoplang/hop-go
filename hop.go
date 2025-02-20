@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 	"maps"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/hoplang/hop-go/parser"
+	"github.com/hoplang/hop-go/typechecker"
 	"golang.org/x/net/html"
 )
 
@@ -47,7 +47,7 @@ func NewProgram(template string) (*Program, error) {
 		}
 	}
 	t := &Program{root: root, functions: functions}
-	_, err = t.inferTypes()
+	_, err = typechecker.InferTypes(functions)
 	if err != nil {
 		return nil, err
 	}
@@ -101,47 +101,9 @@ func stringify(v any) string {
 	return string(b)
 }
 
-// pathPart represents a part of a path with information
-// about whether it's an array index
-type pathPart struct {
-	value      string
-	isArrayRef bool
-}
-
-// Match either:
-// 1. a segment between dots or at start/end of string
-// 2. anything in square brackets
-var pathPartRegexp = regexp.MustCompile(`([^.\[\]]+)|\[([^\]]+)\]`)
-
-// parsePath splits a path string into parts.
-//
-// Examples:
-//
-//	"foo.bar" => [{foo false} {bar false}]
-//	"foo.bar[0].baz" => [{foo false} {bar true} {baz false}]
-//	"foo[0][1][2]" => [{foo true} {1 true} {2 true}]
-func parsePath(path string) ([]pathPart, error) {
-	matches := pathPartRegexp.FindAllStringSubmatch(path, -1)
-	components := []pathPart{}
-	for _, match := range matches {
-		if match[1] != "" {
-			components = append(components, pathPart{
-				value:      match[1],
-				isArrayRef: false,
-			})
-		} else {
-			components = append(components, pathPart{
-				value:      match[2],
-				isArrayRef: true,
-			})
-		}
-	}
-	return components, nil
-}
-
 // lookup retrieves a value from the symbol table using a path string
 func lookup(path string, scope map[string]any) (any, error) {
-	components, err := parsePath(path)
+	components, err := parser.ParsePath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -151,20 +113,20 @@ func lookup(path string, scope map[string]any) (any, error) {
 		switch v := current.(type) {
 		case map[string]any:
 			var exists bool
-			current, exists = v[comp.value]
+			current, exists = v[comp.Value]
 			if !exists {
-				return nil, fmt.Errorf("key not found: %s", comp.value)
+				return nil, fmt.Errorf("key not found: %s", comp.Value)
 			}
 
 		case []any:
 			// Only attempt array indexing if the component was marked as an array reference
-			if !comp.isArrayRef {
-				return nil, fmt.Errorf("cannot use '%s' as array index: not an array reference", comp.value)
+			if !comp.IsArrayRef {
+				return nil, fmt.Errorf("cannot use '%s' as array index: not an array reference", comp.Value)
 			}
 
-			index, err := strconv.Atoi(comp.value)
+			index, err := strconv.Atoi(comp.Value)
 			if err != nil {
-				return nil, fmt.Errorf("invalid array index: %s", comp.value)
+				return nil, fmt.Errorf("invalid array index: %s", comp.Value)
 			}
 			if index < 0 || index >= len(v) {
 				return nil, fmt.Errorf("array index out of bounds: %d", index)
