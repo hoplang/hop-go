@@ -5,6 +5,7 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/hoplang/hop-go/internal/toposort"
 	"golang.org/x/net/html"
 )
 
@@ -209,7 +210,7 @@ func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr) (
 
 // inferTypes infers the types of all functions of a template.
 func (t *Template) inferTypes() (map[string]TypeExpr, error) {
-	sortedFunctions, err := topologicalSort(t.functions)
+	sortedFunctions, err := toposort.TopologicalSort(t.functions)
 	if err != nil {
 		return nil, err
 	}

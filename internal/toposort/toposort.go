@@ -1,4 +1,4 @@
-package hop
+package toposort
 
 import (
 	"fmt"
@@ -6,6 +6,15 @@ import (
 
 	"golang.org/x/net/html"
 )
+
+func getAttribute(node *html.Node, key string) (string, bool) {
+	for _, attr := range node.Attr {
+		if attr.Key == key {
+			return attr.Val, true
+		}
+	}
+	return "", false
+}
 
 // FunctionDependency represents a dependency between template functions
 type FunctionDependency struct {
@@ -30,7 +39,7 @@ func findFunctionDependencies(n *html.Node, deps map[string]bool) {
 }
 
 // topologicalSort performs a topological sort of function dependencies
-func topologicalSort(functions map[string]*html.Node) ([]string, error) {
+func TopologicalSort(functions map[string]*html.Node) ([]string, error) {
 	// Build dependency graph
 	graph := make(map[string]*FunctionDependency)
 	for name := range functions {
