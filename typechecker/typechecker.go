@@ -72,17 +72,18 @@ func (ut *UnionType) String() string {
 
 // TypeError represents a type mismatch in template usage
 type TypeError struct {
-	Pos     parser.Position
+	Start   parser.Position
+	End     parser.Position
 	Context string
 	Path    []string
 }
 
 func (e *TypeError) Error() string {
 	if len(e.Path) > 0 {
-		return fmt.Sprintf("%s: type error in %s: %s",
-			e.Pos, strings.Join(e.Path, "."), e.Context)
+		return fmt.Sprintf("%s-%s: type error in %s: %s",
+			e.Start, e.End, strings.Join(e.Path, "."), e.Context)
 	}
-	return fmt.Sprintf("%s: type error: %s", e.Pos, e.Context)
+	return fmt.Sprintf("%s-%s: type error: %s", e.Start, e.End, e.Context)
 }
 
 // TypeChecker handles type checking, inference and unification
@@ -107,12 +108,15 @@ func (tc *TypeChecker) NewVar() *TypeVar {
 
 // Helper to create type errors with position information
 func (tc *TypeChecker) newError(node *html.Node, format string, args ...interface{}) *TypeError {
-	pos := parser.Position{Line: 0, Column: 0}
+	start := parser.Position{Line: 0, Column: 0}
+	end := parser.Position{Line: 0, Column: 0}
 	if nodePos, exists := tc.nodePositions[node]; exists {
-		pos = nodePos.Start
+		start = nodePos.Start
+		end = nodePos.End
 	}
 	return &TypeError{
-		Pos:     pos,
+		Start:   start,
+		End:     end,
 		Context: fmt.Sprintf(format, args...),
 	}
 }
