@@ -121,6 +121,32 @@ func (tc *TypeChecker) newError(node *html.Node, format string, args ...interfac
 	}
 }
 
+func (tc *TypeChecker) newErrorForAttr(node *html.Node, attrName string, format string, args ...interface{}) *TypeError {
+	start := parser.Position{Line: 0, Column: 0}
+	end := parser.Position{Line: 0, Column: 0}
+
+	if nodePos, exists := tc.nodePositions[node]; exists {
+		if attrPos, exists := nodePos.Attributes[attrName]; exists {
+			if attrPos.ValueStart.Line > 0 {
+				start = attrPos.ValueStart
+				end = attrPos.ValueEnd
+			} else {
+				start = attrPos.NameStart
+				end = attrPos.NameEnd
+			}
+		} else {
+			start = nodePos.Start
+			end = nodePos.End
+		}
+	}
+
+	return &TypeError{
+		Start:   start,
+		End:     end,
+		Context: fmt.Sprintf(format, args...),
+	}
+}
+
 // unify attempts to unify two types
 func (tc *TypeChecker) unify(t1, t2 TypeExpr) error {
 	if t1 == t2 {
@@ -250,33 +276,36 @@ func (tc *TypeChecker) typecheckNode(n *html.Node, s map[string]TypeExpr) error 
 	return nil
 }
 
-func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr, node *html.Node) (TypeExpr, error) {
+func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr) (TypeExpr, error) {
 	parts, err := parser.ParsePath(path)
 	if err != nil {
-		return nil, tc.newError(node, "invalid path: %s", err)
+		return nil, fmt.Errorf("invalid path: %w", err)
+	}
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("empty path")
 	}
 
 	if parts[0].IsArrayRef {
-		return nil, tc.newError(node, "unexpected array-index")
+		return nil, fmt.Errorf("unexpected array-index")
 	}
 
 	currentType, exists := scope[parts[0].Value]
 	if !exists {
-		return nil, tc.newError(node, "undefined variable '%s'", parts[0].Value)
+		return nil, fmt.Errorf("undefined variable '%s'", parts[0].Value)
 	}
 
 	for _, comp := range parts[1:] {
 		if comp.IsArrayRef {
 			arrayType := &ArrayType{ElementType: tc.NewVar()}
 			if err := tc.unify(currentType, arrayType); err != nil {
-				return nil, tc.newError(node, "cannot index non-array value: %s", err)
+				return nil, fmt.Errorf("cannot index non-array value: %s", err)
 			}
 			currentType = arrayType.ElementType
 		} else {
 			fieldType := tc.NewVar()
 			objType := &ObjectType{Fields: map[string]TypeExpr{comp.Value: fieldType}}
 			if err := tc.unify(currentType, objType); err != nil {
-				return nil, tc.newError(node, "cannot access field '%s': %s", comp.Value, err)
+				return nil, fmt.Errorf("cannot access field '%s': %s", comp.Value, err)
 			}
 			currentType = fieldType
 		}
@@ -288,9 +317,9 @@ func (tc *TypeChecker) typecheckLookup(path string, scope map[string]TypeExpr, n
 func (tc *TypeChecker) typecheckNative(n *html.Node, s map[string]TypeExpr) error {
 	for _, attr := range n.Attr {
 		if attr.Key == "inner-text" || strings.HasPrefix(attr.Key, "attr-") {
-			exprType, err := tc.typecheckLookup(attr.Val, s, n)
+			exprType, err := tc.typecheckLookup(attr.Val, s)
 			if err != nil {
-				return err
+				return tc.newErrorForAttr(n, attr.Key, "%s", err)
 			}
 
 			stringOrNumber := &UnionType{
@@ -301,7 +330,7 @@ func (tc *TypeChecker) typecheckNative(n *html.Node, s map[string]TypeExpr) erro
 			}
 
 			if err := tc.unify(exprType, stringOrNumber); err != nil {
-				return tc.newError(n, "invalid type for %s binding: %s", attr.Key, err)
+				return tc.newErrorForAttr(n, attr.Key, "invalid type for %s binding: %s", attr.Key, err)
 			}
 		}
 	}
@@ -317,7 +346,7 @@ func (tc *TypeChecker) typecheckFragment(n *html.Node, s map[string]TypeExpr) er
 	for _, attr := range n.Attr {
 		switch attr.Key {
 		case "inner-text":
-			exprType, err := tc.typecheckLookup(attr.Val, s, n)
+			exprType, err := tc.typecheckLookup(attr.Val, s)
 			if err != nil {
 				return err
 			}
@@ -359,9 +388,9 @@ func (tc *TypeChecker) typecheckFor(n *html.Node, s map[string]TypeExpr) error {
 		return tc.newError(n, "for loop missing 'each' attribute")
 	}
 
-	iterType, err := tc.typecheckLookup(each, s, n)
+	iterType, err := tc.typecheckLookup(each, s)
 	if err != nil {
-		return err
+		return tc.newErrorForAttr(n, "each", "%s", err)
 	}
 
 	elemType := tc.NewVar()
@@ -394,16 +423,16 @@ func (tc *TypeChecker) typecheckIf(n *html.Node, s map[string]TypeExpr) error {
 	}
 
 	if cond == "" {
-		return tc.newError(n, "empty condition in if")
+		return tc.newErrorForAttr(n, "true", "empty condition in if")
 	}
 
-	condType, err := tc.typecheckLookup(cond, s, n)
+	condType, err := tc.typecheckLookup(cond, s)
 	if err != nil {
-		return err
+		return tc.newErrorForAttr(n, "true", "%s", err)
 	}
 
 	if err := tc.unify(condType, PrimitiveType("boolean")); err != nil {
-		return tc.newError(n, "condition must be boolean: %s", err)
+		return tc.newErrorForAttr(n, "true", "condition must be boolean: %s", err)
 	}
 
 	for c := range n.ChildNodes() {
@@ -422,9 +451,9 @@ func (tc *TypeChecker) typecheckRender(n *html.Node, s map[string]TypeExpr) erro
 
 	params, found := getAttribute(n, "params")
 	if found {
-		paramsType, err := tc.typecheckLookup(params, s, n)
+		paramsType, err := tc.typecheckLookup(params, s)
 		if err != nil {
-			return err
+			return tc.newErrorForAttr(n, "params", "%s", err)
 		}
 
 		if err := tc.unify(paramsType, tc.functionParams[functionName]); err != nil {
