@@ -23,13 +23,7 @@ func (e *ParseError) Error() string {
 
 type ParseResult struct {
 	Root          *html.Node
-	NodePositions map[*html.Node]*NodePosition
-}
-
-func NewParseResult() *ParseResult {
-	return &ParseResult{
-		NodePositions: make(map[*html.Node]*NodePosition),
-	}
+	NodePositions map[*html.Node]NodePosition
 }
 
 type Position struct {
@@ -51,7 +45,7 @@ type AttributePosition struct {
 type NodePosition struct {
 	Start      Position
 	End        Position
-	Attributes map[string]*AttributePosition
+	Attributes map[string]AttributePosition
 }
 
 type positionTrackingTokenizer struct {
@@ -72,7 +66,7 @@ func newPositionTrackingTokenizer(r io.Reader) (*positionTrackingTokenizer, erro
 	}, nil
 }
 
-func (t *positionTrackingTokenizer) Next() (html.TokenType, html.Token, Position) {
+func (t *positionTrackingTokenizer) next() (html.TokenType, html.Token, Position) {
 	startPos := t.pos
 	tt := t.tokenizer.Next()
 	tok := t.tokenizer.Token()
@@ -89,8 +83,8 @@ func (t *positionTrackingTokenizer) Next() (html.TokenType, html.Token, Position
 	return tt, tok, startPos
 }
 
-func (t *positionTrackingTokenizer) parseAttributePositions(raw []byte, startPos Position) map[string]*AttributePosition {
-	attrPositions := make(map[string]*AttributePosition)
+func (t *positionTrackingTokenizer) parseAttributePositions(raw []byte, startPos Position) map[string]AttributePosition {
+	attrPositions := make(map[string]AttributePosition)
 	pos := startPos
 	i := 0
 
@@ -125,11 +119,8 @@ func (t *positionTrackingTokenizer) parseAttributePositions(raw []byte, startPos
 
 		// Extract name from raw bytes directly
 		name := string(raw[nameStartIndex:i])
-		if name == "" {
-			continue
-		}
 
-		attrPos := &AttributePosition{
+		attrPos := AttributePosition{
 			NameStart: nameStart,
 			NameEnd:   nameEnd,
 		}
@@ -152,10 +143,7 @@ func (t *positionTrackingTokenizer) parseAttributePositions(raw []byte, startPos
 			}
 
 			// Handle empty value case
-			if i >= len(raw) || raw[i] == '>' || raw[i] == '/' || isWhitespace(raw[i]) {
-				attrPos.ValueStart = pos
-				attrPos.ValueEnd = pos
-			} else if raw[i] == '"' || raw[i] == '\'' {
+			if raw[i] == '"' || raw[i] == '\'' {
 				// Handle quoted value
 				quote := raw[i]
 				t.advancePosition(&pos, raw[i])
@@ -216,7 +204,9 @@ func newParseError(pos Position, format string, args ...interface{}) *ParseError
 }
 
 func Parse(template string) (*ParseResult, error) {
-	result := NewParseResult()
+	result := &ParseResult{
+		NodePositions: make(map[*html.Node]NodePosition),
+	}
 
 	root := &html.Node{
 		Type: html.ElementNode,
@@ -234,7 +224,7 @@ func Parse(template string) (*ParseResult, error) {
 	startPositions := make(map[*html.Node]Position)
 
 	for {
-		tokenType, token, pos := tokenizer.Next()
+		tokenType, token, pos := tokenizer.next()
 
 		switch tokenType {
 		case html.ErrorToken:
@@ -266,7 +256,7 @@ func Parse(template string) (*ParseResult, error) {
 			attrPositions := tokenizer.parseAttributePositions(raw, pos)
 
 			// Store node position with attributes
-			result.NodePositions[node] = &NodePosition{
+			result.NodePositions[node] = NodePosition{
 				Start:      pos,
 				Attributes: attrPositions,
 			}
@@ -288,9 +278,8 @@ func Parse(template string) (*ParseResult, error) {
 
 			stack = stack[:len(stack)-1]
 			nodePos := result.NodePositions[node]
-			if nodePos != nil {
-				nodePos.End = pos
-			}
+			nodePos.End = pos
+			result.NodePositions[node] = nodePos
 
 		case html.TextToken:
 			node := &html.Node{
@@ -299,7 +288,7 @@ func Parse(template string) (*ParseResult, error) {
 			}
 			parent := stack[len(stack)-1]
 			parent.AppendChild(node)
-			result.NodePositions[node] = &NodePosition{
+			result.NodePositions[node] = NodePosition{
 				Start: pos,
 				End:   tokenizer.pos,
 			}

@@ -32,7 +32,7 @@ func NewProgram(template string) (*Program, error) {
 	}
 
 	// Use typechecker to handle function collection and type checking
-	_, err = typechecker.InferTypes(parseResult.Root, parseResult.NodePositions)
+	_, err = typechecker.Typecheck(parseResult.Root, parseResult.NodePositions)
 	if err != nil {
 		return nil, err
 	}
