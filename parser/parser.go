@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"regexp"
@@ -51,18 +50,12 @@ type NodePosition struct {
 type positionTrackingTokenizer struct {
 	tokenizer *html.Tokenizer
 	pos       Position
-	input     string
 }
 
 func newPositionTrackingTokenizer(r io.Reader) (*positionTrackingTokenizer, error) {
-	input, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
 	return &positionTrackingTokenizer{
-		tokenizer: html.NewTokenizer(bytes.NewReader(input)),
+		tokenizer: html.NewTokenizer(r),
 		pos:       Position{Line: 1, Column: 1},
-		input:     string(input),
 	}, nil
 }
 
@@ -251,9 +244,10 @@ func Parse(template string) (*ParseResult, error) {
 			}
 			startPositions[node] = pos
 
-			// Parse attribute positions from raw token
-			raw := tokenizer.tokenizer.Raw()
-			attrPositions := tokenizer.parseAttributePositions(raw, pos)
+			attrPositions := tokenizer.parseAttributePositions(
+				tokenizer.tokenizer.Raw(),
+				pos,
+			)
 
 			// Store node position with attributes
 			result.NodePositions[node] = NodePosition{
