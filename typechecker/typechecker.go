@@ -396,7 +396,7 @@ func (tc *TypeChecker) typecheckFor(n *html.Node, s map[string]TypeExpr) error {
 	elemType := tc.NewVar()
 
 	if err := tc.unify(iterType, &ArrayType{ElementType: elemType}); err != nil {
-		return tc.newError(n, "cannot iterate over non-array value: %s", err)
+		return tc.newErrorForAttr(n, "each", "cannot iterate over non-array value: %s", err)
 	}
 
 	if as != "" {
