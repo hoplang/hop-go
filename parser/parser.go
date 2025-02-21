@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
 )
+
+var validAttrNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9\-_]*$`)
 
 type ParseError struct {
 	Pos     Position
@@ -99,13 +102,9 @@ func (t *positionTrackingTokenizer) parseAttributePositions(raw []byte, startPos
 
 	// Parse attributes
 	for i < len(raw) {
+		// Skip whitespace
 		for i < len(raw) && isWhitespace(raw[i]) {
-			if raw[i] == '\n' {
-				pos.Line++
-				pos.Column = 1
-			} else {
-				pos.Column++
-			}
+			t.advancePosition(&pos, raw[i])
 			i++
 		}
 
@@ -130,18 +129,18 @@ func (t *positionTrackingTokenizer) parseAttributePositions(raw []byte, startPos
 			continue
 		}
 
-		// Skip whitespace before =
-		for i < len(raw) && isWhitespace(raw[i]) {
-			t.advancePosition(&pos, raw[i])
-			i++
-		}
-
 		attrPos := &AttributePosition{
 			NameStart: nameStart,
 			NameEnd:   nameEnd,
 		}
 
-		// Update the space handling in parseAttributePositions
+		// Skip whitespace before potential =
+		for i < len(raw) && isWhitespace(raw[i]) {
+			t.advancePosition(&pos, raw[i])
+			i++
+		}
+
+		// Handle = case
 		if i < len(raw) && raw[i] == '=' {
 			t.advancePosition(&pos, raw[i])
 			i++
@@ -152,40 +151,41 @@ func (t *positionTrackingTokenizer) parseAttributePositions(raw []byte, startPos
 				i++
 			}
 
-			if i < len(raw) {
-				if raw[i] == '"' || raw[i] == '\'' {
-					quote := raw[i]
-					// Skip opening quote
+			// Handle empty value case
+			if i >= len(raw) || raw[i] == '>' || raw[i] == '/' || isWhitespace(raw[i]) {
+				attrPos.ValueStart = pos
+				attrPos.ValueEnd = pos
+			} else if raw[i] == '"' || raw[i] == '\'' {
+				// Handle quoted value
+				quote := raw[i]
+				t.advancePosition(&pos, raw[i])
+				i++
+
+				valueStart := pos
+				valueEnd := pos
+
+				for i < len(raw) && raw[i] != quote {
+					t.advancePosition(&pos, raw[i])
+					valueEnd = pos
+					i++
+				}
+
+				attrPos.ValueStart = valueStart
+				attrPos.ValueEnd = valueEnd
+
+				if i < len(raw) && raw[i] == quote {
 					t.advancePosition(&pos, raw[i])
 					i++
-
-					valueStart := pos
-					valueEnd := pos
-
-					// Find closing quote
-					for i < len(raw) && raw[i] != quote {
-						t.advancePosition(&pos, raw[i])
-						valueEnd = pos
-						i++
-					}
-
-					attrPos.ValueStart = valueStart
-					attrPos.ValueEnd = valueEnd
-
-					// Skip over the closing quote for next iteration
-					if i < len(raw) && raw[i] == quote {
-						t.advancePosition(&pos, raw[i])
-						i++
-					}
-				} else {
-					valueStart := pos
-					for i < len(raw) && !isWhitespace(raw[i]) && raw[i] != '>' && raw[i] != '/' {
-						t.advancePosition(&pos, raw[i])
-						i++
-					}
-					attrPos.ValueStart = valueStart
-					attrPos.ValueEnd = pos
 				}
+			} else {
+				// Handle unquoted value
+				valueStart := pos
+				for i < len(raw) && !isWhitespace(raw[i]) && raw[i] != '>' && raw[i] != '/' {
+					t.advancePosition(&pos, raw[i])
+					i++
+				}
+				attrPos.ValueStart = valueStart
+				attrPos.ValueEnd = pos
 			}
 		}
 
@@ -211,7 +211,7 @@ func isWhitespace(c byte) bool {
 func newParseError(pos Position, format string, args ...interface{}) *ParseError {
 	return &ParseError{
 		Pos:     pos,
-		Message: fmt.Sprintf(format, args...),
+		Message: "parse error: " + fmt.Sprintf(format, args...),
 	}
 }
 
@@ -246,6 +246,13 @@ func Parse(template string) (*ParseResult, error) {
 			return result, nil
 
 		case html.StartTagToken:
+			// Validate attributes before creating the node
+			for _, attr := range token.Attr {
+				if attr.Key == "" || !validAttrNameRegex.MatchString(attr.Key) {
+					return nil, newParseError(pos, "invalid attribute: %v", attr.Key)
+				}
+			}
+
 			node := &html.Node{
 				Type:     html.ElementNode,
 				Data:     token.Data,

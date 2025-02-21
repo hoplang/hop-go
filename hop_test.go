@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hoplang/hop-go"
+	"github.com/hoplang/hop-go/parser"
 	"golang.org/x/net/html"
 	"golang.org/x/tools/txtar"
 )
@@ -38,6 +39,20 @@ func TestRuntimeErrors(t *testing.T) {
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".txtar") {
 			t.Run(entry.Name(), func(t *testing.T) {
 				testRuntimeError(t, filepath.Join("test_data/runtime_errors", entry.Name()))
+			})
+		}
+	}
+}
+
+func TestParseErrors(t *testing.T) {
+	entries, err := os.ReadDir("test_data/parse_errors")
+	if err != nil {
+		t.Fatalf("Failed to read directory: %v", err)
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".txtar") {
+			t.Run(entry.Name(), func(t *testing.T) {
+				testParseError(t, filepath.Join("test_data/parse_errors", entry.Name()))
 			})
 		}
 	}
@@ -99,6 +114,49 @@ func compareHTML(a string, b string) bool {
 	doc, _ := html.Parse(strings.NewReader(a))
 	doc2, _ := html.Parse(strings.NewReader(b))
 	return f(doc, doc2)
+}
+
+func testParseError(t *testing.T, filename string) {
+	// Read the txtar file from testdata directory
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatalf("Failed to read test file: %v", err)
+	}
+
+	// Parse the txtar file
+	archive := txtar.Parse(data)
+
+	// Helper function to find file content by name
+	findFile := func(name string) []byte {
+		for _, file := range archive.Files {
+			if file.Name == name {
+				return file.Data
+			}
+		}
+		return nil
+	}
+
+	// Extract the components
+	templateData := findFile("template")
+	if templateData == nil {
+		t.Fatal("Failed to extract template data")
+	}
+	expectedError := strings.TrimSpace(string(findFile("error")))
+	if expectedError == "" {
+		t.Fatal("Failed to extract expected error")
+	}
+
+	_, err = parser.Parse(string(templateData))
+	if err == nil {
+		t.Fatalf("Expected error to contain '%s' but got nil", expectedError)
+	}
+	if err != nil {
+		if !strings.Contains(err.Error(), expectedError) {
+			t.Fatalf("Expected error to contain '%s' but got %s",
+				expectedError, err.Error())
+		}
+		return
+	}
 }
 
 func testTypeError(t *testing.T, filename string) {

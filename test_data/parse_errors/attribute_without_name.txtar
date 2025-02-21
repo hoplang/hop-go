@@ -1,0 +1,7 @@
+-- template --
+<function name="main" params-as="data">
+	<if ="foo">
+	</if>
+</function>
+-- error --
+parse error: invalid attribute: ="foo"
