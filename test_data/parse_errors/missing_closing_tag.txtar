@@ -1,0 +1,6 @@
+-- template --
+<function name="main" params-as="data">
+	<div>
+</function>
+-- error --
+parse error: mismatched closing tag
