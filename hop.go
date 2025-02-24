@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -100,6 +101,20 @@ func stringify(v any) string {
 	return string(b)
 }
 
+func getFieldByJSONTag(v reflect.Value, tagName string) (reflect.Value, error) {
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		jsonTag := field.Tag.Get("json")
+		// Split the json tag to handle cases like `json:"name,omitempty"`
+		tagParts := strings.Split(jsonTag, ",")
+		if tagParts[0] == tagName {
+			return v.Field(i), nil
+		}
+	}
+	return reflect.Value{}, fmt.Errorf("json tag %s not found", tagName)
+}
+
 // lookup retrieves a value from the symbol table using a path string
 func lookup(path string, scope map[string]any) (any, error) {
 	components, err := parser.ParsePath(path)
@@ -133,7 +148,23 @@ func lookup(path string, scope map[string]any) (any, error) {
 			current = v[index]
 
 		default:
-			return nil, fmt.Errorf("cannot navigate through type %T", current)
+			val := reflect.ValueOf(current)
+			if val.Kind() == reflect.Ptr {
+				val = val.Elem()
+			}
+
+			if val.Kind() == reflect.Struct {
+				field, err := getFieldByJSONTag(val, comp.Value)
+				if err != nil {
+					return nil, err
+				}
+				if !field.CanInterface() {
+					return nil, fmt.Errorf("field with json tag %s is not exported", comp.Value)
+				}
+				current = field.Interface()
+			} else {
+				return nil, fmt.Errorf("cannot navigate through type %T", current)
+			}
 		}
 	}
 
@@ -333,9 +364,9 @@ func (t *Program) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, err
 		return nil, err
 	}
 
-	array, ok := v.([]any)
-	if !ok {
-		return nil, fmt.Errorf("can not iterate over '%s' of type %s", stringify(v), typeof(v))
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("can not iterate over '%s' of type %s %v", stringify(v), typeof(v), reflect.TypeOf(v))
 	}
 
 	// Clone the symbol table to allow for mutation.
@@ -344,7 +375,8 @@ func (t *Program) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, err
 	}
 
 	var results []*html.Node
-	for _, item := range array {
+	for i := 0; i < rv.Len(); i++ {
+		item := rv.Index(i).Interface()
 		// Mutation is thread-safe here since we have cloned the symbol table.
 		if as != "" {
 			s[as] = item
