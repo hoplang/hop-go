@@ -1,0 +1,14 @@
+-- json --
+{}
+-- template --
+<function name="main">
+	<form id="form">
+		<input type="text" required>
+		<button type="submit">Send</button>
+	</form>
+</function>
+-- html --
+<form id="form">
+	<input type="text" required=""/>
+	<button type="submit">Send</button>
+</form>

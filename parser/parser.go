@@ -11,6 +11,23 @@ import (
 
 var validAttrNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9\-_]*$`)
 
+var voidElements = map[string]bool{
+	"area":   true,
+	"base":   true,
+	"br":     true,
+	"col":    true,
+	"embed":  true,
+	"hr":     true,
+	"img":    true,
+	"input":  true,
+	"link":   true,
+	"meta":   true,
+	"param":  true,
+	"source": true,
+	"track":  true,
+	"wbr":    true,
+}
+
 type ParseError struct {
 	Pos     Position
 	Message string
@@ -250,16 +267,31 @@ func Parse(template string) (*ParseResult, error) {
 			)
 
 			// Store node position with attributes
-			result.NodePositions[node] = NodePosition{
+			nodePos := NodePosition{
 				Start:      pos,
 				Attributes: attrPositions,
 			}
 
+			// For void elements, set the end position immediately
+			if voidElements[token.Data] {
+				nodePos.End = tokenizer.pos
+			}
+			result.NodePositions[node] = nodePos
+
 			parent := stack[len(stack)-1]
 			parent.AppendChild(node)
-			stack = append(stack, node)
+
+			// Only push non-void elements onto the stack
+			if !voidElements[token.Data] {
+				stack = append(stack, node)
+			}
 
 		case html.EndTagToken:
+			// Ignore end tags for void elements
+			if voidElements[token.Data] {
+				continue
+			}
+
 			if len(stack) == 0 {
 				return nil, newParseError(pos, "unexpected closing tag </%s>", token.Data)
 			}
