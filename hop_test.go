@@ -74,46 +74,45 @@ func TestTypeErrors(t *testing.T) {
 }
 
 func compareHTML(a string, b string) bool {
-	var f func(*html.Node, *html.Node) bool
-	f = func(a *html.Node, b *html.Node) bool {
-		if a == nil || b == nil {
-			return false
-		}
-		if a.Type != b.Type {
-			return false
-		}
-		if a.Type == html.TextNode {
-			if a.Data != b.Data {
-				if strings.TrimSpace(a.Data) == "" && strings.TrimSpace(b.Data) == "" {
-					// Allow that two text nodes differ in the amount
-					// of whitespace if they only consist of whitespace
-				} else {
-					return false
-				}
-			}
-		} else {
-			if a.Data != b.Data {
+	doc, _ := html.Parse(strings.NewReader(a))
+	doc2, _ := html.Parse(strings.NewReader(b))
+	return compareHTMLNodes(doc, doc2)
+}
+
+func compareHTMLNodes(a *html.Node, b *html.Node) bool {
+	if a == nil || b == nil {
+		return false
+	}
+	if a.Type != b.Type {
+		return false
+	}
+	if a.Type == html.TextNode {
+		if a.Data != b.Data {
+			if strings.TrimSpace(a.Data) == "" && strings.TrimSpace(b.Data) == "" {
+				// Allow that two text nodes differ in the amount
+				// of whitespace if they only consist of whitespace
+			} else {
 				return false
 			}
 		}
-		if !reflect.DeepEqual(a.Attr, b.Attr) {
+	} else {
+		if a.Data != b.Data {
 			return false
 		}
-		ac := a.FirstChild
-		bc := b.FirstChild
-		for ac != nil || bc != nil {
-			res := f(ac, bc)
-			if !res {
-				return res
-			}
-			ac = ac.NextSibling
-			bc = bc.NextSibling
-		}
-		return true
 	}
-	doc, _ := html.Parse(strings.NewReader(a))
-	doc2, _ := html.Parse(strings.NewReader(b))
-	return f(doc, doc2)
+	if !reflect.DeepEqual(a.Attr, b.Attr) {
+		return false
+	}
+	ac := a.FirstChild
+	bc := b.FirstChild
+	for ac != nil || bc != nil {
+		if !compareHTMLNodes(ac, bc) {
+			return false
+		}
+		ac = ac.NextSibling
+		bc = bc.NextSibling
+	}
+	return true
 }
 
 func testParseError(t *testing.T, filename string) {
