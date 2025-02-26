@@ -1,12 +1,12 @@
--- json --
+-- data.json --
 ["a","b","c"]
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div inner-text="foo[0]"></div>
 	<div inner-text="foo[1]"></div>
 	<div inner-text="foo[2]"></div>
 </function>
--- html --
+-- output.html --
 <div>a</div>
 <div>b</div>
 <div>c</div>

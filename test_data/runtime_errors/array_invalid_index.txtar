@@ -1,8 +1,8 @@
--- json --
+-- data.json --
 [1,2,3]
--- template --
+-- main.hop --
 <function name="main" params-as="items">
 	<div inner-text="items[k]"></div>
 </function>
--- error --
+-- error.txt --
 invalid array index

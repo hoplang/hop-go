@@ -1,4 +1,4 @@
--- template --
+-- main.hop --
 <function name="foo" params-as="bar">
 	<div attr-class="bar"></div>
 </function>
@@ -8,5 +8,5 @@
 	<render function="foo" params="data">
 	</render>
 </function>
--- error --
+-- error.txt --
 type error: invalid parameter type for function 'foo'

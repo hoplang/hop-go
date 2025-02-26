@@ -1,4 +1,4 @@
--- template --
+-- main.hop --
 <function name="main" params-as="data">
     <div attr-class="data.x.y"></div>
     <render function="other" params="data.x"></render>
@@ -8,5 +8,5 @@
     <if true="obj.y.valid">
     </if>
 </function>
--- error --
+-- error.txt --
 type error: invalid parameter type for function 'other'

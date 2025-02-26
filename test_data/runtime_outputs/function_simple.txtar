@@ -1,9 +1,9 @@
--- json --
+-- data.json --
 [
 	{"title": "foo"},
 	{"title": "bar"}
 ]
--- template --
+-- main.hop --
 <function name="item-card" params-as="item">
   <div>
     <div class="p-2" inner-text="item.title"></div>
@@ -13,7 +13,7 @@
 	<render function="item-card" params="items[0]"></render>
 	<render function="item-card" params="items[1]"></render>
 </function>
--- html --
+-- output.html --
 <div>
   <div class="p-2">foo</div>
 </div>

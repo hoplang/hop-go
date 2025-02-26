@@ -1,8 +1,8 @@
--- template --
+-- main.hop --
 <function name="main">
 	<for eac="bar">
 	  <div></div>
 	</for>
 </function>
--- error --
+-- error.txt --
 type error: unrecognized attribute 'eac' in for

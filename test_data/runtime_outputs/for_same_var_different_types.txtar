@@ -1,9 +1,9 @@
--- json --
+-- data.json --
 {
 	"strings": ["foo", "bar"],
 	"numbers": [1, 2]
 }
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<for each="foo.strings" as="v">
 		<div inner-text="v"></div>
@@ -12,7 +12,7 @@
 		<div inner-text="v"></div>
 	</for>
 </function>
--- html --
+-- output.html --
 <div>foo</div>
 <div>bar</div>
 <div>1</div>

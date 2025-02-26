@@ -1,10 +1,10 @@
--- json --
+-- data.json --
 [
 	"a",
 	"b",
 	"c"
 ]
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div>
 		<for each="foo" as="f">
@@ -13,7 +13,7 @@
 		</for>
 	</div>
 </function>
--- html --
+-- output.html --
 <div>
 	<div>a</div>
 	<p>a</p>

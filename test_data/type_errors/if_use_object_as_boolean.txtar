@@ -1,8 +1,8 @@
--- template --
+-- main.hop --
 <function name="main" params-as="data">
     <div attr-class="data.field.subfield[0]"></div>
 	<if true="data">
 	</if>
 </function>
--- error --
+-- error.txt --
 type error: condition must be boolean

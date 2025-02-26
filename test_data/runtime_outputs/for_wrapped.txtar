@@ -1,6 +1,6 @@
--- json --
+-- data.json --
 [ "bar", "baz" ]
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div>
 		<for each="foo" as="v">
@@ -8,7 +8,7 @@
 		</for>
 	</div>
 </function>
--- html --
+-- output.html --
 <div>
 	<div>bar</div>
 	<div>baz</div>

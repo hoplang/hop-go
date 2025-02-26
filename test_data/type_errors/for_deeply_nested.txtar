@@ -1,4 +1,4 @@
--- template --
+-- main.hop --
 <function name="main" params-as="i">
 	<for each="i" as="j">
 		<for each="j.s.t" as="k">
@@ -13,5 +13,5 @@
 		</for>
 	</for>
 </function>
--- error --
+-- error.txt --
 type error: cannot iterate over non-array value

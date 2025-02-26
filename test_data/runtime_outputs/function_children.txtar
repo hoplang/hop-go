@@ -1,6 +1,6 @@
--- json --
+-- data.json --
 {}
--- template --
+-- main.hop --
 <function name="item-card" params-as="p">
 	<div class="outer">
 		<children></children>
@@ -11,7 +11,7 @@
 		<div class="inner">foo</div>
 	</render>
 </function>
--- html --
+-- output.html --
 <div class="outer">
 	<div class="inner">foo</div>
 </div>

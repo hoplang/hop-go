@@ -1,6 +1,6 @@
--- json --
+-- data.json --
 {}
--- template --
+-- main.hop --
 <function name="main">
 	<fragment>
 		<fragment>
@@ -8,5 +8,5 @@
 		</fragment>
 	</fragment>
 </function>
--- html --
+-- output.html --
 <div>hello world</div>

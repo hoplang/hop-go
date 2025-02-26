@@ -1,11 +1,11 @@
--- json --
+-- data.json --
 [ "bar", "baz" ]
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<for each="foo" as="v">
 		<div><fragment inner-text="v"></fragment><fragment inner-text="v"></fragment></div>
 	</for>
 </function>
--- html --
+-- output.html --
 <div>barbar</div>
 <div>bazbaz</div>

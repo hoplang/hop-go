@@ -1,8 +1,8 @@
--- json --
+-- data.json --
 { "bar": "baz" }
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<fragment inner-text="foo.bar"></fragment>
 </function>
--- html --
+-- output.html --
 baz

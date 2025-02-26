@@ -1,10 +1,10 @@
--- json --
+-- data.json --
 [
 	{"title": "foo", "show": true},
 	{"title": "bar", "show": false},
 	{"title": "baz", "show": true}
 ]
--- template --
+-- main.hop --
 <function name="main" params-as="items">
 	<for each="items" as="item">
 		<if true="item.show">
@@ -12,6 +12,6 @@
 		</if>
 	</for>
 </function>
--- html --
+-- output.html --
 <div>foo</div>
 <div>baz</div>

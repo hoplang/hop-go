@@ -1,7 +1,7 @@
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div attr-class="foo"></div>
 	<div attr-class="foo.bar"></div>
 </function>
--- error --
+-- error.txt --
 type error: cannot access field 'bar'

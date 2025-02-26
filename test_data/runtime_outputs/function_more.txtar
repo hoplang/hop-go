@@ -1,4 +1,4 @@
--- json --
+-- data.json --
 {
     "items": [
       {
@@ -17,7 +17,7 @@
       }
     ]
   }
--- template --
+-- main.hop --
 <function name="item-card" params-as="item">
   <div inner-text="item.title"></div>
 </function>
@@ -35,7 +35,7 @@
   <render function="list-section" params="data.items"></render>
   <render function="list-section" params="data.other_items"></render>
 </function>
--- html --
+-- output.html --
 <div>First Item</div>
 <div>Second Item</div>
 <div>Other Item 1</div>

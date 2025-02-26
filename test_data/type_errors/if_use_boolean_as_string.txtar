@@ -1,9 +1,9 @@
--- template --
+-- main.hop --
 <function name="main" params-as="data">
 	<if true="data">
 	</if>
 	<div attr-class="data">
 	</div>
 </function>
--- error --
+-- error.txt --
 type error: invalid type for attr-class binding

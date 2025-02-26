@@ -136,11 +136,11 @@ func testParseError(t *testing.T, filename string) {
 	}
 
 	// Extract the components
-	templateData := findFile("template")
+	templateData := findFile("main.hop")
 	if templateData == nil {
 		t.Fatal("Failed to extract template data")
 	}
-	expectedError := strings.TrimSpace(string(findFile("error")))
+	expectedError := strings.TrimSpace(string(findFile("error.txt")))
 	if expectedError == "" {
 		t.Fatal("Failed to extract expected error")
 	}
@@ -179,11 +179,11 @@ func testTypeError(t *testing.T, filename string) {
 	}
 
 	// Extract the components
-	templateData := findFile("template")
+	templateData := findFile("main.hop")
 	if templateData == nil {
 		t.Fatal("Failed to extract template data")
 	}
-	expectedError := strings.TrimSpace(string(findFile("error")))
+	expectedError := strings.TrimSpace(string(findFile("error.txt")))
 	if expectedError == "" {
 		t.Fatal("Failed to extract expected error")
 	}
@@ -223,15 +223,15 @@ func testRuntimeError(t *testing.T, filename string) {
 	}
 
 	// Extract the components
-	jsonData := findFile("json")
+	jsonData := findFile("data.json")
 	if jsonData == nil {
 		t.Fatal("Failed to extract JSON data")
 	}
-	templateData := findFile("template")
+	templateData := findFile("main.hop")
 	if templateData == nil {
 		t.Fatal("Failed to extract template data")
 	}
-	expectedError := strings.TrimSpace(string(findFile("error")))
+	expectedError := strings.TrimSpace(string(findFile("error.txt")))
 	if expectedError == "" {
 		t.Fatal("Failed to extract expected error")
 	}
@@ -282,15 +282,15 @@ func testFile(t *testing.T, filename string) {
 	}
 
 	// Extract the components
-	jsonData := findFile("json")
+	jsonData := findFile("data.json")
 	if jsonData == nil {
 		t.Fatal("Failed to extract JSON data")
 	}
-	templateData := findFile("template")
+	templateData := findFile("main.hop")
 	if templateData == nil {
 		t.Fatal("Failed to extract template data")
 	}
-	expectedHTML := findFile("html")
+	expectedHTML := findFile("output.html")
 	if expectedHTML == nil {
 		t.Fatal("Failed to extract expected HTML")
 	}

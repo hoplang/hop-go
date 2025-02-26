@@ -1,6 +1,6 @@
--- template --
+-- main.hop --
 <function name="main">
 	<render function="test"></render>
 </function>
--- error --
+-- error.txt --
 type error: function 'main' depends on undefined function 'test'

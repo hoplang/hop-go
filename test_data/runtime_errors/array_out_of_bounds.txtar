@@ -1,8 +1,8 @@
--- json --
+-- data.json --
 []
--- template --
+-- main.hop --
 <function name="main" params-as="items">
 	<div inner-text="items[0]"></div>
 </function>
--- error --
+-- error.txt --
 array index out of bounds

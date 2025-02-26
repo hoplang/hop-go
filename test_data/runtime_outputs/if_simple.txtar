@@ -1,9 +1,9 @@
--- json --
+-- data.json --
 {
   "foo": true,
   "bar": false
 }
--- template --
+-- main.hop --
 <function name="main" params-as="params">
 	<if true="params.bar">
 		<div>bar</div>
@@ -12,5 +12,5 @@
 		<div>foo</div>
 	</if>
 </function>
--- html --
+-- output.html --
 <div>foo</div>

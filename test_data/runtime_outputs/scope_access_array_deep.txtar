@@ -1,8 +1,8 @@
--- json --
+-- data.json --
 [[[["foo","bar"]]]]
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div inner-text="foo[0][0][0][1]"></div>
 </function>
--- html --
+-- output.html --
 <div>bar</div>

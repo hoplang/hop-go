@@ -1,11 +1,11 @@
 Test that inner-text properly escapes html.
--- json --
+-- data.json --
 [ "<p>" ]
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<for each="foo" as="v">
 		<div inner-text="v"></div>
 	</for>
 </function>
--- html --
+-- output.html --
 <div>&lt;p&gt;</div>

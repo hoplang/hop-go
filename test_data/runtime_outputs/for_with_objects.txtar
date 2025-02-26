@@ -1,9 +1,9 @@
--- json --
+-- data.json --
 [
 	{ "title": "Section 1", "items": ["Item 1.1", "Item 1.2"] },
 	{ "title": "Section 2", "items": ["Item 2.1", "Item 2.2"] }
 ]
--- template --
+-- main.hop --
 <function name="main" params-as="sections">
 	<div>
 		<for each="sections" as="section">
@@ -16,7 +16,7 @@
 		</for>
 	</div>
 </function>
--- html --
+-- output.html --
 <div>
 	<div>
 		<h2>Section 1</h2>

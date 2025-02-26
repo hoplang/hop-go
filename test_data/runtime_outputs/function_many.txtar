@@ -1,6 +1,6 @@
--- json --
+-- data.json --
 "hello"
--- template --
+-- main.hop --
 <function name="a" params-as="ap">
 	<div inner-text="ap"></div>
 </function>
@@ -19,5 +19,5 @@
 <function name="main" params-as="p">
 	<render function="e" params="p"></render>
 </function>
--- html --
+-- output.html --
 <div>hello</div>

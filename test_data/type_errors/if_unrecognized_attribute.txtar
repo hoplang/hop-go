@@ -1,8 +1,8 @@
--- template --
+-- main.hop --
 <function name="main">
 	<if tru="bar">
 		<div></div>
 	</if>
 </function>
--- error --
+-- error.txt --
 type error: unrecognized attribute 'tru' in if

@@ -1,9 +1,9 @@
--- template --
+-- main.hop --
 <function name="fail3" params-as="data">
     <div attr-class="data.field"></div>
     <for each="data.field" as="item">
         <div inner-text="item"></div>
     </for>
 </function>
--- error --
+-- error.txt --
 type error: cannot iterate over non-array value

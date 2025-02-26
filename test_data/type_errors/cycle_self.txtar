@@ -1,6 +1,6 @@
--- template --
+-- main.hop --
 <function name="foo" params-as="p">
 	<render function="foo" params="p"></render>
 </function>
--- error --
+-- error.txt --
 cycle detected

@@ -1,8 +1,8 @@
--- template --
+-- main.hop --
 <function name="main">
 	<fragment inner-tex="bar">
 	  <div></div>
 	</fragment>
 </function>
--- error --
+-- error.txt --
 type error: unrecognized attribute 'inner-tex' in fragment

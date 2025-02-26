@@ -1,11 +1,11 @@
--- json --
+-- data.json --
 null
--- template --
+-- main.hop --
 <function name="inner">
 	<div></div>
 </function>
 <function name="main">
 	<render function="inner"></render>
 </function>
--- html --
+-- output.html --
 <div></div>

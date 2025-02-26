@@ -1,8 +1,8 @@
--- json --
+-- data.json --
 {"bar": "baz"}
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div attr-class="foo"></div>
 </function>
--- error --
+-- error.txt --
 can not use '{"bar":"baz"}' of type object as an attribute

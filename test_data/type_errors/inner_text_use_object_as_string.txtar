@@ -1,7 +1,7 @@
--- template --
+-- main.hop --
 <function name="fail1" params-as="foo">
     <div inner-text="foo.bar"></div>
     <div inner-text="foo"></div>
 </function>
--- error --
+-- error.txt --
 type error: invalid type for inner-text binding

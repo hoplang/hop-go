@@ -1,12 +1,12 @@
--- json --
+-- data.json --
 {
   "bar": {"foo": "bar"}
 }
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<for each="foo.bar" as="b">
 	  <div></div>
 	</for>
 </function>
--- error --
+-- error.txt --
 can not iterate over '{"foo":"bar"}' of type object

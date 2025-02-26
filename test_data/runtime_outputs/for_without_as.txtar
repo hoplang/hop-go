@@ -1,7 +1,7 @@
 Test for loop where `as`-attribute is omitted.
--- json --
+-- data.json --
 [ "bar", "baz" ]
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div class="foo">
 		<for each="foo">
@@ -9,7 +9,7 @@ Test for loop where `as`-attribute is omitted.
 		</for>
 	</div>
 </function>
--- html --
+-- output.html --
 <div class="foo">
 	<div class="bar">test</div>
 	<div class="bar">test</div>

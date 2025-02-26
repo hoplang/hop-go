@@ -1,6 +1,6 @@
--- template --
+-- main.hop --
 <function name="main" params-as="data">
 	<div>
 </function>
--- error --
+-- error.txt --
 parse error: mismatched closing tag

@@ -1,10 +1,10 @@
 Test that the inner-most div has access to the global scope.
--- json --
+-- data.json --
 {
   "foo": [ ["baz", "bar"] ],
   "t": "baz"
 }
--- template --
+-- main.hop --
 <function name="main" params-as="p">
 	<for each="p.foo" as="i">
 		<for each="i" as="j">
@@ -12,6 +12,6 @@ Test that the inner-most div has access to the global scope.
 		</for>
 	</for>
 </function>
--- html --
+-- output.html --
 <div class="bar">baz</div>
 <div class="bar">baz</div>

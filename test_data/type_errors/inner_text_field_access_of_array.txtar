@@ -1,4 +1,4 @@
--- template --
+-- main.hop --
 <function name="fail4" params-as="items">
     <for each="items" as="item">
         <for each="item" as="subitem">
@@ -6,5 +6,5 @@
         </for>
     </for>
 </function>
--- error --
+-- error.txt --
 type error: cannot access field 'name'

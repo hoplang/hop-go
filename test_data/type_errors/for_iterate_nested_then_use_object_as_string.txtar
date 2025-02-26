@@ -1,7 +1,7 @@
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<for each="foo.a.b.c.d" as="f"></for>
 	<div attr-class="foo.a.b.c"></div>
 </function>
--- error --
+-- error.txt --
 type error: invalid type for attr-class binding

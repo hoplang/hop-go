@@ -1,4 +1,4 @@
--- template --
+-- main.hop --
 <function name="main" params-as="data">
     <for each="data.items" as="item">
         <for each="item.subitems" as="subitem">
@@ -7,5 +7,5 @@
         <div attr-class="item.subitems"></div>
     </for>
 </function>
--- error --
+-- error.txt --
 type error: invalid type for attr-class binding

@@ -1,6 +1,6 @@
--- json --
+-- data.json --
 {}
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<!DOCTYPE html>
 	<html>
@@ -9,7 +9,7 @@
 	</body>
 	</html>
 </function>
--- html --
+-- output.html --
 <!DOCTYPE html>
 <html>
 <body>

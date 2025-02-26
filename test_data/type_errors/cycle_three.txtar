@@ -1,4 +1,4 @@
--- template --
+-- main.hop --
 <function name="a" params-as="ap">
 	<render function="b" params="ap"></render>
 </function>
@@ -8,5 +8,5 @@
 <function name="c" params-as="cp">
 	<render function="a" params="cp"></render>
 </function>
--- error --
+-- error.txt --
 cycle detected

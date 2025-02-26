@@ -1,9 +1,9 @@
 Test that inner-text works with numbers.
--- json --
+-- data.json --
 123
--- template --
+-- main.hop --
 <function name="main" params-as="foo">
 	<div inner-text="foo"></div>
 </function>
--- html --
+-- output.html --
 <div>123</div>
