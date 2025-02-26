@@ -180,6 +180,8 @@ func handleInnerText(symbols map[string]any, path string) (*html.Node, error) {
 	switch u := v.(type) {
 	case float64:
 		str = fmt.Sprintf("%g", u)
+	case int:
+		str = fmt.Sprintf("%d", u)
 	case string:
 		str = u
 	default:
