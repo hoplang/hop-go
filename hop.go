@@ -198,20 +198,19 @@ func handleInnerText(symbols map[string]any, path string) (*html.Node, error) {
 // The returned html nodes will have no parent and no siblings and it
 // is thus safe to append them as the child nodes of another HTML node.
 func (t *Program) evaluateNode(n *html.Node, symbols map[string]any) ([]*html.Node, error) {
-	if n.Type == html.ElementNode && n.Data == "render" {
-		return t.evaluateRender(n, symbols)
-	}
-	if n.Type == html.ElementNode && n.Data == "fragment" {
-		return t.evaluateFragment(n, symbols)
-	}
-	if n.Type == html.ElementNode && n.Data == "children" {
-		return t.evaluateChildren(symbols)
-	}
-	if n.Type == html.ElementNode && n.Data == "for" {
-		return t.evaluateFor(n, symbols)
-	}
-	if n.Type == html.ElementNode && n.Data == "if" {
-		return t.evaluateIf(n, symbols)
+	if n.Type == html.ElementNode {
+		switch n.Data {
+		case "render":
+			return t.evaluateRender(n, symbols)
+		case "fragment":
+			return t.evaluateFragment(n, symbols)
+		case "children":
+			return t.evaluateChildren(symbols)
+		case "for":
+			return t.evaluateFor(n, symbols)
+		case "if":
+			return t.evaluateIf(n, symbols)
+		}
 	}
 	return t.evaluateNative(n, symbols)
 }
