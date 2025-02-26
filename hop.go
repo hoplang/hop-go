@@ -31,13 +31,10 @@ func NewProgram(template string) (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Use typechecker to handle function collection and type checking
 	_, err = typechecker.Typecheck(parseResult.Root, parseResult.NodePositions)
 	if err != nil {
 		return nil, err
 	}
-
 	functions := map[string]*html.Node{}
 	for c := range parseResult.Root.ChildNodes() {
 		if c.Type == html.ElementNode && c.Data == "function" {
@@ -50,7 +47,6 @@ func NewProgram(template string) (*Program, error) {
 			functions[name] = c
 		}
 	}
-
 	return &Program{root: parseResult.Root, functions: functions}, nil
 }
 

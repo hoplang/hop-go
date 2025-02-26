@@ -10,83 +10,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-// TypeExpr represents a type expression in our system
-type TypeExpr interface {
-	String() string
-}
-
-// TypeVar represents a type variable (unknown type)
-type TypeVar struct {
-	Name string
-	Link *TypeExpr // For unification
-}
-
-func (tv *TypeVar) String() string {
-	if tv.Link != nil {
-		return (*tv.Link).String()
-	}
-	return "?" + tv.Name
-}
-
-// PrimitiveType represents basic types like string, number, boolean
-type PrimitiveType string
-
-func (pt PrimitiveType) String() string {
-	return string(pt)
-}
-
-// ArrayType represents an array of some type
-type ArrayType struct {
-	ElementType TypeExpr
-}
-
-func (at *ArrayType) String() string {
-	return fmt.Sprintf("[]%s", at.ElementType)
-}
-
-// ObjectType represents a type with fields
-type ObjectType struct {
-	Fields map[string]TypeExpr
-}
-
-func (ot *ObjectType) String() string {
-	fields := make([]string, 0, len(ot.Fields))
-	for name, typ := range ot.Fields {
-		fields = append(fields, fmt.Sprintf("%s: %s", name, typ))
-	}
-	return fmt.Sprintf("{%s}", strings.Join(fields, ", "))
-}
-
-// UnionType represents a type that could be one of several types
-type UnionType struct {
-	Types []TypeExpr
-}
-
-func (ut *UnionType) String() string {
-	types := make([]string, len(ut.Types))
-	for i, t := range ut.Types {
-		types[i] = t.String()
-	}
-	return strings.Join(types, " | ")
-}
-
-// TypeError represents a type mismatch in template usage
-type TypeError struct {
-	Start   parser.Position
-	End     parser.Position
-	Context string
-	Path    []string
-}
-
-func (e *TypeError) Error() string {
-	if len(e.Path) > 0 {
-		return fmt.Sprintf("%s-%s: type error in %s: %s",
-			e.Start, e.End, strings.Join(e.Path, "."), e.Context)
-	}
-	return fmt.Sprintf("%s-%s: type error: %s", e.Start, e.End, e.Context)
-}
-
-// typeChecker handles type checking, inference and unification
 type typeChecker struct {
 	nextVar        int
 	functionParams map[string]TypeExpr
@@ -104,47 +27,6 @@ func newTypeChecker(positions map[*html.Node]parser.NodePosition) *typeChecker {
 func (tc *typeChecker) newVar() *TypeVar {
 	tc.nextVar++
 	return &TypeVar{Name: fmt.Sprintf("t%d", tc.nextVar)}
-}
-
-// Helper to create type errors with position information
-func (tc *typeChecker) newError(node *html.Node, format string, args ...interface{}) *TypeError {
-	start := parser.Position{Line: 0, Column: 0}
-	end := parser.Position{Line: 0, Column: 0}
-	if nodePos, exists := tc.nodePositions[node]; exists {
-		start = nodePos.Start
-		end = nodePos.End
-	}
-	return &TypeError{
-		Start:   start,
-		End:     end,
-		Context: fmt.Sprintf(format, args...),
-	}
-}
-
-func (tc *typeChecker) newErrorForAttr(node *html.Node, attrName string, format string, args ...interface{}) *TypeError {
-	start := parser.Position{Line: 0, Column: 0}
-	end := parser.Position{Line: 0, Column: 0}
-
-	if nodePos, exists := tc.nodePositions[node]; exists {
-		if attrPos, exists := nodePos.Attributes[attrName]; exists {
-			if attrPos.ValueStart.Line > 0 {
-				start = attrPos.ValueStart
-				end = attrPos.ValueEnd
-			} else {
-				start = attrPos.NameStart
-				end = attrPos.NameEnd
-			}
-		} else {
-			start = nodePos.Start
-			end = nodePos.End
-		}
-	}
-
-	return &TypeError{
-		Start:   start,
-		End:     end,
-		Context: fmt.Sprintf(format, args...),
-	}
 }
 
 // unify attempts to unify two types
