@@ -39,7 +39,7 @@ func findFunctionDependencies(n *html.Node, deps map[string]bool) {
 }
 
 // topologicalSort performs a topological sort of function dependencies
-func TopologicalSort(functions map[string]*html.Node) ([]string, error) {
+func TopologicalSort(functions map[string]*html.Node, importedFunctions map[string]bool) ([]string, error) {
 	// Build dependency graph
 	graph := make(map[string]*FunctionDependency)
 	for name := range functions {
@@ -64,8 +64,108 @@ func TopologicalSort(functions map[string]*html.Node) ([]string, error) {
 	// Calculate in-degrees
 	for _, dep := range graph {
 		for d := range dep.Dependencies {
+			// Check if dependency is an imported function
+			if importedFunctions[d] {
+				// Skip this dependency as it's imported
+				continue
+			}
+
 			if _, exists := graph[d]; !exists {
 				return nil, fmt.Errorf("type error: function '%s' depends on undefined function '%s'", dep.Name, d)
+			}
+			inDegree[d]++
+		}
+	}
+
+	// Find all nodes with in-degree 0
+	var queue []string
+	for name := range graph {
+		if inDegree[name] == 0 {
+			queue = append(queue, name)
+		}
+	}
+
+	// Process queue
+	for len(queue) > 0 {
+		node := queue[0]
+		queue = queue[1:]
+		result = append(result, node)
+
+		// Decrease in-degree for all dependencies
+		for dep := range graph[node].Dependencies {
+			// Skip imported functions
+			if importedFunctions[dep] {
+				continue
+			}
+
+			inDegree[dep]--
+			if inDegree[dep] == 0 {
+				queue = append(queue, dep)
+			}
+		}
+	}
+
+	// Check for cycles
+	if len(result) != len(graph) {
+		// Find unprocessed nodes for better error message
+		unprocessed := make([]string, 0)
+		for name := range graph {
+			found := false
+			for _, processed := range result {
+				if name == processed {
+					found = true
+					break
+				}
+			}
+			if !found {
+				unprocessed = append(unprocessed, name)
+			}
+		}
+		return nil, fmt.Errorf("cycle detected in function dependencies involving: %v", unprocessed)
+	}
+
+	// The result is in reverse topological order (dependents before dependencies)
+	// We need to reverse it to get dependencies before dependents
+	slices.Reverse(result)
+
+	return result, nil
+}
+
+type ModuleDependency struct {
+	Name         string
+	Dependencies map[string]bool
+}
+
+// TopologicalSortModules performs a topological sort of module dependencies
+func TopologicalSortModules(moduleImports map[string]map[string][]string) ([]string, error) {
+	// Build dependency graph
+	graph := make(map[string]*ModuleDependency)
+	for name := range moduleImports {
+		// Initialize all modules in the graph first
+		graph[name] = &ModuleDependency{
+			Name:         name,
+			Dependencies: make(map[string]bool),
+		}
+	}
+
+	// Now collect dependencies
+	for name, imports := range moduleImports {
+		deps := make(map[string]bool)
+		for importedModule := range imports {
+			deps[importedModule] = true
+		}
+		graph[name].Dependencies = deps
+	}
+
+	// Kahn's algorithm for topological sorting
+	var result []string
+	inDegree := make(map[string]int)
+
+	// Calculate in-degrees
+	for _, dep := range graph {
+		for d := range dep.Dependencies {
+			if _, exists := graph[d]; !exists {
+				return nil, fmt.Errorf("module '%s' depends on undefined module '%s'", dep.Name, d)
 			}
 			inDegree[d]++
 		}
@@ -110,7 +210,7 @@ func TopologicalSort(functions map[string]*html.Node) ([]string, error) {
 				unprocessed = append(unprocessed, name)
 			}
 		}
-		return nil, fmt.Errorf("cycle detected in function dependencies involving: %v", unprocessed)
+		return nil, fmt.Errorf("cycle detected in module dependencies involving: %v", unprocessed)
 	}
 
 	// The result is in reverse topological order (dependents before dependencies)

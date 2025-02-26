@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hoplang/hop-go/internal/toposort"
 	"github.com/hoplang/hop-go/parser"
 	"github.com/hoplang/hop-go/typechecker"
 	"golang.org/x/net/html"
@@ -20,8 +21,11 @@ type function struct {
 }
 
 type module struct {
-	root      *html.Node
-	functions map[string]*html.Node
+	root          *html.Node
+	functions     map[string]*html.Node
+	imports       map[string][]string
+	functionTypes map[string]typechecker.TypeExpr
+	nodePositions map[*html.Node]parser.NodePosition
 }
 
 type Program struct {
@@ -39,11 +43,10 @@ func (p *Program) AddModule(moduleName string, template string) error {
 	if err != nil {
 		return err
 	}
-	_, err = typechecker.Typecheck(parseResult.Root, parseResult.NodePositions)
-	if err != nil {
-		return err
-	}
+
 	functions := map[string]*html.Node{}
+	imports := map[string][]string{}
+
 	for c := range parseResult.Root.ChildNodes() {
 		if c.Type == html.ElementNode && c.Data == "function" {
 			var name string
@@ -54,8 +57,125 @@ func (p *Program) AddModule(moduleName string, template string) error {
 			}
 			functions[name] = c
 		}
+		if c.Type == html.ElementNode && c.Data == "import" {
+			var module string
+			var function string
+			for _, attr := range c.Attr {
+				if attr.Key == "from" {
+					module = attr.Val
+				}
+				if attr.Key == "function" {
+					function = attr.Val
+				}
+			}
+			imports[module] = append(imports[module], function)
+		}
 	}
-	p.modules[moduleName] = module{root: parseResult.Root, functions: functions}
+
+	p.modules[moduleName] = module{
+		root:          parseResult.Root,
+		functions:     functions,
+		imports:       imports,
+		functionTypes: make(map[string]typechecker.TypeExpr),
+		nodePositions: parseResult.NodePositions,
+	}
+
+	return nil
+}
+
+func (p *Program) Compile() error {
+	err := p.typecheckModules()
+	if err != nil {
+		return err
+	}
+	return p.resolveImports()
+}
+
+// typecheckModules performs typechecking on all modules in topological order
+func (p *Program) typecheckModules() error {
+	// Create a map of module imports for topological sorting
+	moduleImports := make(map[string]map[string][]string)
+	for moduleName, mod := range p.modules {
+		moduleImports[moduleName] = mod.imports
+	}
+
+	// Get modules in topological order (dependencies first)
+	sortedModules, err := toposort.TopologicalSortModules(moduleImports)
+	if err != nil {
+		return fmt.Errorf("sorting modules: %w", err)
+	}
+
+	fmt.Printf("%v\n", sortedModules)
+
+	// Process modules in topological order
+	for _, moduleName := range sortedModules {
+		mod := p.modules[moduleName]
+
+		// Collect imported function types
+		importedFunctionTypes := make(map[string]typechecker.TypeExpr)
+		for importModuleName, functionNames := range mod.imports {
+			importedModule := p.modules[importModuleName]
+			for _, functionName := range functionNames {
+				importedType, exists := importedModule.functionTypes[functionName]
+				if !exists {
+					return fmt.Errorf("function %s not found in module %s (imported by %s)",
+						functionName, importModuleName, moduleName)
+				}
+				importedFunctionTypes[functionName] = importedType
+			}
+		}
+
+		// Typecheck with imported function types
+		functionTypes, err := typechecker.Typecheck(mod.root, mod.nodePositions, importedFunctionTypes)
+		if err != nil {
+			return fmt.Errorf("typechecking module %s: %w", moduleName, err)
+		}
+
+		// Store the function types
+		mod.functionTypes = functionTypes
+		p.modules[moduleName] = mod
+	}
+
+	return nil
+}
+
+// resolveImports resolves all module imports after typechecking
+func (p *Program) resolveImports() error {
+	// Create a map of module imports for topological sorting
+	moduleImports := make(map[string]map[string][]string)
+	for moduleName, mod := range p.modules {
+		moduleImports[moduleName] = mod.imports
+	}
+
+	// Get modules in topological order (dependencies first)
+	sortedModules, err := toposort.TopologicalSortModules(moduleImports)
+	if err != nil {
+		return fmt.Errorf("sorting modules: %w", err)
+	}
+
+	// Process modules in topological order
+	for _, moduleName := range sortedModules {
+		mod := p.modules[moduleName]
+
+		for importModuleName, functionNames := range mod.imports {
+			importedModule := p.modules[importModuleName]
+
+			for _, functionName := range functionNames {
+				importedFunction, exists := importedModule.functions[functionName]
+				if !exists {
+					return fmt.Errorf("function %s not found in module %s (imported by %s)",
+						functionName, importModuleName, moduleName)
+				}
+
+				// Add the imported function to the current module's functions
+				mod.functions[functionName] = importedFunction
+			}
+		}
+
+		// Update the module in the program
+		p.modules[moduleName] = mod
+	}
+
 	return nil
 }
 

@@ -189,7 +189,8 @@ func testTypeError(t *testing.T, filename string) {
 	}
 
 	p := hop.NewProgram()
-	err = p.AddModule("main", string(templateData))
+	_ = p.AddModule("main", string(templateData))
+	err = p.Compile()
 	if err == nil {
 		t.Fatalf("Expected error to contain '%s' but got nil", expectedError)
 	}
@@ -245,9 +246,14 @@ func testRuntimeError(t *testing.T, filename string) {
 	var buf bytes.Buffer
 
 	p := hop.NewProgram()
-	p.AddModule("main", string(templateData))
+	err = p.AddModule("main", string(templateData))
 	if err != nil {
 		t.Fatalf("Expected runtime error but got parse error: %s", err.Error())
+		return
+	}
+	err = p.Compile()
+	if err != nil {
+		t.Fatalf("Expected runtime error but got compile error: %s", err.Error())
 		return
 	}
 
@@ -286,10 +292,6 @@ func testFile(t *testing.T, filename string) {
 	if jsonData == nil {
 		t.Fatal("Failed to extract JSON data")
 	}
-	templateData := findFile("main.hop")
-	if templateData == nil {
-		t.Fatal("Failed to extract template data")
-	}
 	expectedHTML := findFile("output.html")
 	if expectedHTML == nil {
 		t.Fatal("Failed to extract expected HTML")
@@ -304,9 +306,20 @@ func testFile(t *testing.T, filename string) {
 	var buf bytes.Buffer
 
 	p := hop.NewProgram()
-	p.AddModule("main", string(templateData))
+
+	for _, file := range archive.Files {
+		if strings.HasSuffix(file.Name, ".hop") {
+			parts := strings.Split(file.Name, ".")
+			err := p.AddModule(parts[0], string(file.Data))
+			if err != nil {
+				t.Errorf("Failed to add hop module: %s", err)
+			}
+		}
+	}
+	// Then resolve imports
+	err = p.Compile()
 	if err != nil {
-		t.Errorf("Failed to parse template: %s", err)
+		t.Errorf("Failed to compile: %s", err)
 	}
 
 	err = p.ExecuteFunction(&buf, "main", "main", d)

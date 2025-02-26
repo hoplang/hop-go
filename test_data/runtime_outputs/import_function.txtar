@@ -1,0 +1,16 @@
+-- data.json --
+{}
+-- bar.hop --
+<function name="foo">
+	<div>foo</div>
+</function>
+-- main.hop --
+<import function="foo" from="bar"></import>
+
+<function name="main" params-as="p">
+	<render function="foo"></render>
+	<render function="foo"></render>
+</function>
+-- output.html --
+<div>foo</div>
+<div>foo</div>

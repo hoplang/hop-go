@@ -5,8 +5,8 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/hoplang/hop-go/internal/toposort"
 	"github.com/hoplang/hop-go/parser"
-	"github.com/hoplang/hop-go/typechecker/internal/toposort"
 	"golang.org/x/net/html"
 )
 
@@ -98,7 +98,7 @@ func (tc *typeChecker) unify(t1, t2 TypeExpr) error {
 }
 
 // Typecheck infers the types of all functions of a template.
-func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition) (map[string]TypeExpr, error) {
+func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition, importedFunctions map[string]TypeExpr) (map[string]TypeExpr, error) {
 	// Collect functions
 	functions := map[string]*html.Node{}
 	for c := range root.ChildNodes() {
@@ -116,13 +116,24 @@ func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition) (m
 		}
 	}
 
-	sortedFunctions, err := toposort.TopologicalSort(functions)
+	importedFunctionNames := make(map[string]bool)
+	for name := range importedFunctions {
+		importedFunctionNames[name] = true
+	}
+
+	sortedFunctions, err := toposort.TopologicalSort(functions, importedFunctionNames)
 	if err != nil {
 		return nil, err
 	}
 
 	// Type check functions
 	tc := newTypeChecker(positions)
+
+	// Add imported functions to the function params
+	for name, typeExpr := range importedFunctions {
+		tc.functionParams[name] = typeExpr
+	}
+
 	for _, name := range sortedFunctions {
 		function := functions[name]
 		s := map[string]TypeExpr{}
