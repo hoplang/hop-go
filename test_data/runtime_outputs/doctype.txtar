@@ -1,0 +1,18 @@
+-- json --
+{}
+-- template --
+<function name="main" params-as="foo">
+	<!DOCTYPE html>
+	<html>
+	<body>
+	<div>hello world</div>
+	</body>
+	</html>
+</function>
+-- html --
+<!DOCTYPE html>
+<html>
+<body>
+<div>hello world</div>
+</body>
+</html>

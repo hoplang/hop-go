@@ -245,6 +245,21 @@ func Parse(template string) (*ParseResult, error) {
 			}
 			return result, nil
 
+		case html.DoctypeToken:
+			// Handle doctype declaration
+			node := &html.Node{
+				Type: html.DoctypeNode,
+				Data: token.Data,
+			}
+			parent := stack[len(stack)-1]
+			parent.AppendChild(node)
+
+			// Store position information for the doctype node
+			result.NodePositions[node] = NodePosition{
+				Start: pos,
+				End:   tokenizer.pos,
+			}
+
 		case html.StartTagToken:
 			// Validate attributes before creating the node
 			for _, attr := range token.Attr {
@@ -310,6 +325,19 @@ func Parse(template string) (*ParseResult, error) {
 		case html.TextToken:
 			node := &html.Node{
 				Type: html.TextNode,
+				Data: token.Data,
+			}
+			parent := stack[len(stack)-1]
+			parent.AppendChild(node)
+			result.NodePositions[node] = NodePosition{
+				Start: pos,
+				End:   tokenizer.pos,
+			}
+
+		case html.CommentToken:
+			// Handle comment nodes
+			node := &html.Node{
+				Type: html.CommentNode,
 				Data: token.Data,
 			}
 			parent := stack[len(stack)-1]
