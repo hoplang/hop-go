@@ -414,8 +414,15 @@ func (t *Program) evaluateNative(n *html.Node, s map[string]any) ([]*html.Node, 
 			if err != nil {
 				return nil, err
 			}
-			str, ok := v.(string)
-			if !ok {
+			var str string
+			switch u := v.(type) {
+			case float64:
+				str = fmt.Sprintf("%g", u)
+			case int:
+				str = fmt.Sprintf("%d", u)
+			case string:
+				str = u
+			default:
 				return nil, fmt.Errorf("can not use '%s' of type %s as an attribute", stringify(v), typeof(v))
 			}
 			result.Attr = append(result.Attr, html.Attribute{
