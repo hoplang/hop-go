@@ -121,7 +121,7 @@ func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition, im
 		importedFunctionNames[name] = true
 	}
 
-	sortedFunctions, err := toposort.TopologicalSort(functions, importedFunctionNames)
+	sortedFunctions, err := toposort.TopologicalSortFunctions(functions, importedFunctionNames)
 	if err != nil {
 		return nil, err
 	}

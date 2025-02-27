@@ -38,8 +38,7 @@ func findFunctionDependencies(n *html.Node, deps map[string]bool) {
 	}
 }
 
-// topologicalSort performs a topological sort of function dependencies
-func TopologicalSort(functions map[string]*html.Node, importedFunctions map[string]bool) ([]string, error) {
+func TopologicalSortFunctions(functions map[string]*html.Node, importedFunctions map[string]bool) ([]string, error) {
 	// Build dependency graph
 	graph := make(map[string]*FunctionDependency)
 	for name := range functions {
@@ -136,7 +135,6 @@ type ModuleDependency struct {
 	Dependencies map[string]bool
 }
 
-// TopologicalSortModules performs a topological sort of module dependencies
 func TopologicalSortModules(moduleImports map[string]map[string][]string) ([]string, error) {
 	// Build dependency graph
 	graph := make(map[string]*ModuleDependency)
