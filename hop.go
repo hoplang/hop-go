@@ -29,156 +29,117 @@ type module struct {
 }
 
 type Program struct {
+	modules map[string]string
+}
+
+type CompiledProgram struct {
 	modules map[string]module
 }
 
 // NewProgram takes a template string, parses it and returns
 // a program or fails.
 func NewProgram() *Program {
-	return &Program{modules: map[string]module{}}
+	return &Program{
+		modules: map[string]string{},
+	}
 }
 
-func (p *Program) AddModule(moduleName string, template string) error {
-	parseResult, err := parser.Parse(template)
-	if err != nil {
-		return err
-	}
-
-	functions := map[string]*html.Node{}
-	imports := map[string][]string{}
-
-	for c := range parseResult.Root.ChildNodes() {
-		if c.Type == html.ElementNode && c.Data == "function" {
-			var name string
-			for _, attr := range c.Attr {
-				if attr.Key == "name" {
-					name = attr.Val
-				}
-			}
-			functions[name] = c
-		}
-		if c.Type == html.ElementNode && c.Data == "import" {
-			var module string
-			var function string
-			for _, attr := range c.Attr {
-				if attr.Key == "from" {
-					module = attr.Val
-				}
-				if attr.Key == "function" {
-					function = attr.Val
-				}
-			}
-			imports[module] = append(imports[module], function)
-		}
-	}
-
-	p.modules[moduleName] = module{
-		root:          parseResult.Root,
-		functions:     functions,
-		imports:       imports,
-		functionTypes: make(map[string]typechecker.TypeExpr),
-		nodePositions: parseResult.NodePositions,
-	}
-
-	return nil
+func (p *Program) AddModule(moduleName string, template string) {
+	p.modules[moduleName] = template
 }
 
-func (p *Program) Compile() error {
-	err := p.typecheckModules()
-	if err != nil {
-		return err
+func (p *Program) Compile() (*CompiledProgram, error) {
+	cp := &CompiledProgram{
+		modules: map[string]module{},
 	}
-	return p.resolveImports()
-}
 
-// typecheckModules performs typechecking on all modules in topological order
-func (p *Program) typecheckModules() error {
-	// Create a map of module imports for topological sorting
+	// Step 1: Parse all modules and collect dependencies
 	moduleImports := make(map[string]map[string][]string)
-	for moduleName, mod := range p.modules {
+
+	for moduleName, templateSrc := range p.modules {
+		parseResult, err := parser.Parse(templateSrc)
+		if err != nil {
+			return nil, fmt.Errorf("parsing module %s: %w", moduleName, err)
+		}
+
+		mod := module{
+			root:          parseResult.Root,
+			functions:     map[string]*html.Node{},
+			imports:       map[string][]string{},
+			functionTypes: map[string]typechecker.TypeExpr{},
+			nodePositions: parseResult.NodePositions,
+		}
+
+		for c := range parseResult.Root.ChildNodes() {
+			if c.Type != html.ElementNode {
+				continue
+			}
+
+			switch c.Data {
+			case "function":
+				for _, attr := range c.Attr {
+					if attr.Key == "name" {
+						mod.functions[attr.Val] = c
+						break
+					}
+				}
+			case "import":
+				var module, function string
+				for _, attr := range c.Attr {
+					if attr.Key == "from" {
+						module = attr.Val
+					} else if attr.Key == "function" {
+						function = attr.Val
+					}
+				}
+				mod.imports[module] = append(mod.imports[module], function)
+			}
+		}
+
+		cp.modules[moduleName] = mod
 		moduleImports[moduleName] = mod.imports
 	}
 
-	// Get modules in topological order (dependencies first)
+	// Step 2: Process modules in dependency order
 	sortedModules, err := toposort.TopologicalSortModules(moduleImports)
 	if err != nil {
-		return fmt.Errorf("sorting modules: %w", err)
+		return nil, fmt.Errorf("sorting modules: %w", err)
 	}
 
-	// Process modules in topological order
 	for _, moduleName := range sortedModules {
-		mod := p.modules[moduleName]
-
-		// Collect imported function types
+		mod := cp.modules[moduleName]
 		importedFunctionTypes := make(map[string]typechecker.TypeExpr)
+
+		// Process imports
 		for importModuleName, functionNames := range mod.imports {
-			importedModule := p.modules[importModuleName]
+			importedModule := cp.modules[importModuleName]
 			for _, functionName := range functionNames {
-				importedType, exists := importedModule.functionTypes[functionName]
-				if !exists {
-					return fmt.Errorf("function %s not found in module %s (imported by %s)",
-						functionName, importModuleName, moduleName)
+				// Get function type and implementation
+				if importedType, ok := importedModule.functionTypes[functionName]; ok {
+					importedFunctionTypes[functionName] = importedType
+					mod.functions[functionName] = importedModule.functions[functionName]
+				} else {
+					return nil, fmt.Errorf("function %s not found in module %s",
+						functionName, importModuleName)
 				}
-				importedFunctionTypes[functionName] = importedType
 			}
 		}
 
-		// Typecheck with imported function types
+		// Typecheck
 		functionTypes, err := typechecker.Typecheck(mod.root, mod.nodePositions, importedFunctionTypes)
 		if err != nil {
-			return fmt.Errorf("typechecking module %s: %w", moduleName, err)
+			return nil, fmt.Errorf("typechecking module %s: %w", moduleName, err)
 		}
 
-		// Store the function types
 		mod.functionTypes = functionTypes
-		p.modules[moduleName] = mod
+		cp.modules[moduleName] = mod
 	}
 
-	return nil
-}
-
-// resolveImports resolves all module imports after typechecking
-func (p *Program) resolveImports() error {
-	// Create a map of module imports for topological sorting
-	moduleImports := make(map[string]map[string][]string)
-	for moduleName, mod := range p.modules {
-		moduleImports[moduleName] = mod.imports
-	}
-
-	// Get modules in topological order (dependencies first)
-	sortedModules, err := toposort.TopologicalSortModules(moduleImports)
-	if err != nil {
-		return fmt.Errorf("sorting modules: %w", err)
-	}
-
-	// Process modules in topological order
-	for _, moduleName := range sortedModules {
-		mod := p.modules[moduleName]
-
-		for importModuleName, functionNames := range mod.imports {
-			importedModule := p.modules[importModuleName]
-
-			for _, functionName := range functionNames {
-				importedFunction, exists := importedModule.functions[functionName]
-				if !exists {
-					return fmt.Errorf("function %s not found in module %s (imported by %s)",
-						functionName, importModuleName, moduleName)
-				}
-
-				// Add the imported function to the current module's functions
-				mod.functions[functionName] = importedFunction
-			}
-		}
-
-		// Update the module in the program
-		p.modules[moduleName] = mod
-	}
-
-	return nil
+	return cp, nil
 }
 
 // ExecuteFunction executes a specific function from the template with the given parameters
-func (p *Program) ExecuteFunction(w io.Writer, moduleName string, functionName string, data any) error {
+func (p *CompiledProgram) ExecuteFunction(w io.Writer, moduleName string, functionName string, data any) error {
 	module, exists := p.modules[moduleName]
 	if !exists {
 		return fmt.Errorf("no module with name %s", moduleName)

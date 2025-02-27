@@ -189,8 +189,8 @@ func testTypeError(t *testing.T, filename string) {
 	}
 
 	p := hop.NewProgram()
-	_ = p.AddModule("main", string(templateData))
-	err = p.Compile()
+	p.AddModule("main", string(templateData))
+	_, err = p.Compile()
 	if err == nil {
 		t.Fatalf("Expected error to contain '%s' but got nil", expectedError)
 	}
@@ -246,18 +246,14 @@ func testRuntimeError(t *testing.T, filename string) {
 	var buf bytes.Buffer
 
 	p := hop.NewProgram()
-	err = p.AddModule("main", string(templateData))
-	if err != nil {
-		t.Fatalf("Expected runtime error but got parse error: %s", err.Error())
-		return
-	}
-	err = p.Compile()
+	p.AddModule("main", string(templateData))
+	cp, err := p.Compile()
 	if err != nil {
 		t.Fatalf("Expected runtime error but got compile error: %s", err.Error())
 		return
 	}
 
-	err = p.ExecuteFunction(&buf, "main", "main", d)
+	err = cp.ExecuteFunction(&buf, "main", "main", d)
 	if err == nil {
 		t.Errorf("Expected runtime error '%s' but got nil", expectedError)
 	}
@@ -306,29 +302,24 @@ func testFile(t *testing.T, filename string) {
 	var buf bytes.Buffer
 
 	p := hop.NewProgram()
-
 	for _, file := range archive.Files {
 		if strings.HasSuffix(file.Name, ".hop") {
 			parts := strings.Split(file.Name, ".")
-			err := p.AddModule(parts[0], string(file.Data))
-			if err != nil {
-				t.Errorf("Failed to add hop module: %s", err)
-			}
+			p.AddModule(parts[0], string(file.Data))
 		}
 	}
-	// Then resolve imports
-	err = p.Compile()
+	c, err := p.Compile()
 	if err != nil {
 		t.Errorf("Failed to compile: %s", err)
 	}
 
-	err = p.ExecuteFunction(&buf, "main", "main", d)
+	err = c.ExecuteFunction(&buf, "main", "main", d)
 	if err != nil {
-		t.Errorf("Failed to execute template: %s", err)
+		t.Errorf("Failed to execute function: %s", err)
 	}
 	equal := compareHTML(strings.TrimSpace(string(expectedHTML)), strings.TrimSpace(buf.String()))
 	if !equal {
-		t.Errorf("Template processing failed.\nExpected:\n%s\nGot:\n%s",
+		t.Errorf("Expected:\n%s\nGot:\n%s",
 			expectedHTML, buf.String())
 	}
 }
