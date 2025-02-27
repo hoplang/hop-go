@@ -137,7 +137,6 @@ func (c *Compiler) Compile() (*Program, error) {
 				// Get function type and implementation
 				if importedType, ok := importedModule.functionTypes[functionName]; ok {
 					importedFunctionTypes[functionName] = importedType
-					mod.functions[functionName] = importedModule.functions[functionName]
 				} else {
 					return nil, fmt.Errorf("function %s not found in module %s",
 						functionName, importModuleName)
@@ -175,7 +174,7 @@ func (p *Program) ExecuteFunction(w io.Writer, moduleName string, functionName s
 		}
 	}
 	for c := range function.ChildNodes() {
-		nodes, err := module.evaluateNode(c, functionScope)
+		nodes, err := p.evaluateNode(moduleName, c, functionScope)
 		if err != nil {
 			return err
 		}
@@ -305,27 +304,27 @@ func handleInnerText(symbols map[string]any, path string) (*html.Node, error) {
 //
 // The returned html nodes will have no parent and no siblings and it
 // is thus safe to append them as the child nodes of another HTML node.
-func (m *module) evaluateNode(n *html.Node, symbols map[string]any) ([]*html.Node, error) {
+func (p *Program) evaluateNode(currentModule string, n *html.Node, symbols map[string]any) ([]*html.Node, error) {
 	if n.Type == html.ElementNode {
 		switch n.Data {
 		case "render":
-			return m.evaluateRender(n, symbols)
+			return p.evaluateRender(currentModule, n, symbols)
 		case "fragment":
-			return m.evaluateFragment(n, symbols)
+			return p.evaluateFragment(currentModule, n, symbols)
 		case "children":
-			return m.evaluateChildren(symbols)
+			return p.evaluateChildren(symbols)
 		case "for":
-			return m.evaluateFor(n, symbols)
+			return p.evaluateFor(currentModule, n, symbols)
 		case "if":
-			return m.evaluateIf(n, symbols)
+			return p.evaluateIf(currentModule, n, symbols)
 		}
 	}
-	return m.evaluateNative(n, symbols)
+	return p.evaluateNative(currentModule, n, symbols)
 }
 
 // evaluateChildren evaluates a `children` tag.
 // <children></children>
-func (m *module) evaluateChildren(s map[string]any) ([]*html.Node, error) {
+func (p *Program) evaluateChildren(s map[string]any) ([]*html.Node, error) {
 	v, err := lookup("children", s)
 	if err != nil {
 		return nil, err
@@ -341,7 +340,7 @@ func (m *module) evaluateChildren(s map[string]any) ([]*html.Node, error) {
 
 // evaluateFragment evaluates a `fragment` tag.
 // <fragment inner-text="item.title"></fragment>
-func (m *module) evaluateFragment(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (p *Program) evaluateFragment(currentModule string, n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) > 1 {
 		panic("Expected fragment to have exactly 0 or 1 attribute after type checking")
 	}
@@ -351,7 +350,7 @@ func (m *module) evaluateFragment(n *html.Node, s map[string]any) ([]*html.Node,
 	}
 	result := []*html.Node{}
 	for c := range n.ChildNodes() {
-		ns, err := m.evaluateNode(c, s)
+		ns, err := p.evaluateNode(currentModule, c, s)
 		if err != nil {
 			return nil, err
 		}
@@ -364,19 +363,17 @@ func (m *module) evaluateFragment(n *html.Node, s map[string]any) ([]*html.Node,
 // <render function="list" params="item">
 // ...
 // </render>
-func (m *module) evaluateRender(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (p *Program) evaluateRender(currentModule string, n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) < 1 || len(n.Attr) > 2 {
 		panic("Expected render to have exactly 1 or 2 attributes after type checking")
 	}
-	var function *html.Node
+
+	var functionName string
 	var valueToBind any
+
 	for _, attr := range n.Attr {
 		if attr.Key == "function" {
-			c, found := m.functions[attr.Val]
-			if !found {
-				return nil, fmt.Errorf("no function with name '%s'", attr.Val)
-			}
-			function = c
+			functionName = attr.Val
 		}
 		if attr.Key == "params" {
 			v, err := lookup(attr.Val, s)
@@ -386,27 +383,50 @@ func (m *module) evaluateRender(n *html.Node, s map[string]any) ([]*html.Node, e
 			valueToBind = v
 		}
 	}
+
+	// Determine which module contains the function
+	targetModule := currentModule
+	targetFunction := functionName
+
+	// Check if the function is imported from another module
+	mod := p.modules[currentModule]
+	for importedModule, functions := range mod.imports {
+		for _, fn := range functions {
+			if fn == functionName {
+				targetModule = importedModule
+				break
+			}
+		}
+	}
+
+	// Get the function from the correct module
+	function, found := p.modules[targetModule].functions[targetFunction]
+	if !found {
+		return nil, fmt.Errorf("no function with name '%s' in module '%s'", targetFunction, targetModule)
+	}
+
 	functionScope := map[string]any{}
 	for _, attr := range function.Attr {
 		if attr.Key == "params-as" {
 			functionScope[attr.Val] = valueToBind
 		}
 	}
+
 	var children []*html.Node
 	for c := range n.ChildNodes() {
-		processed, err := m.evaluateNode(c, s)
+		processed, err := p.evaluateNode(currentModule, c, s)
 		if err != nil {
 			return nil, err
 		}
 		children = append(children, processed...)
 	}
 
-	// TODO: This data shouldn't live in the function scope
+	// Add children to the function scope
 	functionScope["children"] = children
 
 	var results []*html.Node
 	for cc := range function.ChildNodes() {
-		ns, err := m.evaluateNode(cc, functionScope)
+		ns, err := p.evaluateNode(targetModule, cc, functionScope)
 		if err != nil {
 			return nil, err
 		}
@@ -421,7 +441,7 @@ func (m *module) evaluateRender(n *html.Node, s map[string]any) ([]*html.Node, e
 // <if true="item.isActive">
 // ...
 // </if>
-func (m *module) evaluateIf(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (p *Program) evaluateIf(currentModule string, n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) != 1 {
 		panic("Expected if to have exactly 1 attribute after type checking")
 	}
@@ -438,7 +458,7 @@ func (m *module) evaluateIf(n *html.Node, s map[string]any) ([]*html.Node, error
 	}
 	var results []*html.Node
 	for c := range n.ChildNodes() {
-		ns, err := m.evaluateNode(c, s)
+		ns, err := p.evaluateNode(currentModule, c, s)
 		if err != nil {
 			return nil, err
 		}
@@ -453,7 +473,7 @@ func (m *module) evaluateIf(n *html.Node, s map[string]any) ([]*html.Node, error
 // <for each="items" as="item">
 // ...
 // </for>
-func (m *module) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (p *Program) evaluateFor(currentModule string, n *html.Node, s map[string]any) ([]*html.Node, error) {
 	if len(n.Attr) < 1 || len(n.Attr) > 2 {
 		panic("Expected for to have exactly 1 or 2 attributes after type checking")
 	}
@@ -491,7 +511,7 @@ func (m *module) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, erro
 			s[as] = item
 		}
 		for c := range n.ChildNodes() {
-			ns, err := m.evaluateNode(c, s)
+			ns, err := p.evaluateNode(currentModule, c, s)
 			if err != nil {
 				return nil, err
 			}
@@ -503,7 +523,7 @@ func (m *module) evaluateFor(n *html.Node, s map[string]any) ([]*html.Node, erro
 }
 
 // evaluateNative evaluates a native tag such as a <div>.
-func (m *module) evaluateNative(n *html.Node, s map[string]any) ([]*html.Node, error) {
+func (p *Program) evaluateNative(currentModule string, n *html.Node, s map[string]any) ([]*html.Node, error) {
 	result := html.Node{
 		Type:     n.Type,
 		Data:     n.Data,
@@ -545,7 +565,7 @@ func (m *module) evaluateNative(n *html.Node, s map[string]any) ([]*html.Node, e
 
 	if result.FirstChild == nil {
 		for c := range n.ChildNodes() {
-			children, err := m.evaluateNode(c, s)
+			children, err := p.evaluateNode(currentModule, c, s)
 			if err != nil {
 				return nil, err
 			}
