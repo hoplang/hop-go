@@ -29,34 +29,32 @@ type module struct {
 }
 
 type Program struct {
-	modules map[string]string
-}
-
-type CompiledProgram struct {
 	modules map[string]module
 }
 
-// NewProgram takes a template string, parses it and returns
-// a program or fails.
-func NewProgram() *Program {
-	return &Program{
+type Compiler struct {
+	modules map[string]string
+}
+
+func NewCompiler() *Compiler {
+	return &Compiler{
 		modules: map[string]string{},
 	}
 }
 
-func (p *Program) AddModule(moduleName string, template string) {
-	p.modules[moduleName] = template
+func (c *Compiler) AddModule(moduleName string, template string) {
+	c.modules[moduleName] = template
 }
 
-func (p *Program) Compile() (*CompiledProgram, error) {
-	cp := &CompiledProgram{
+func (c *Compiler) Compile() (*Program, error) {
+	p := &Program{
 		modules: map[string]module{},
 	}
 
 	// Step 1: Parse all modules and collect dependencies
 	moduleImports := make(map[string]map[string][]string)
 
-	for moduleName, templateSrc := range p.modules {
+	for moduleName, templateSrc := range c.modules {
 		parseResult, err := parser.Parse(templateSrc)
 		if err != nil {
 			return nil, fmt.Errorf("parsing module %s: %w", moduleName, err)
@@ -96,7 +94,7 @@ func (p *Program) Compile() (*CompiledProgram, error) {
 			}
 		}
 
-		cp.modules[moduleName] = mod
+		p.modules[moduleName] = mod
 		moduleImports[moduleName] = mod.imports
 	}
 
@@ -107,12 +105,12 @@ func (p *Program) Compile() (*CompiledProgram, error) {
 	}
 
 	for _, moduleName := range sortedModules {
-		mod := cp.modules[moduleName]
+		mod := p.modules[moduleName]
 		importedFunctionTypes := make(map[string]typechecker.TypeExpr)
 
 		// Process imports
 		for importModuleName, functionNames := range mod.imports {
-			importedModule := cp.modules[importModuleName]
+			importedModule := p.modules[importModuleName]
 			for _, functionName := range functionNames {
 				// Get function type and implementation
 				if importedType, ok := importedModule.functionTypes[functionName]; ok {
@@ -132,14 +130,14 @@ func (p *Program) Compile() (*CompiledProgram, error) {
 		}
 
 		mod.functionTypes = functionTypes
-		cp.modules[moduleName] = mod
+		p.modules[moduleName] = mod
 	}
 
-	return cp, nil
+	return p, nil
 }
 
 // ExecuteFunction executes a specific function from the template with the given parameters
-func (p *CompiledProgram) ExecuteFunction(w io.Writer, moduleName string, functionName string, data any) error {
+func (p *Program) ExecuteFunction(w io.Writer, moduleName string, functionName string, data any) error {
 	module, exists := p.modules[moduleName]
 	if !exists {
 		return fmt.Errorf("no module with name %s", moduleName)

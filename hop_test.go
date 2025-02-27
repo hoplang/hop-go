@@ -188,7 +188,7 @@ func testTypeError(t *testing.T, filename string) {
 		t.Fatal("Failed to extract expected error")
 	}
 
-	p := hop.NewProgram()
+	p := hop.NewCompiler()
 	p.AddModule("main", string(templateData))
 	_, err = p.Compile()
 	if err == nil {
@@ -245,7 +245,7 @@ func testRuntimeError(t *testing.T, filename string) {
 
 	var buf bytes.Buffer
 
-	p := hop.NewProgram()
+	p := hop.NewCompiler()
 	p.AddModule("main", string(templateData))
 	cp, err := p.Compile()
 	if err != nil {
@@ -301,7 +301,7 @@ func testFile(t *testing.T, filename string) {
 
 	var buf bytes.Buffer
 
-	p := hop.NewProgram()
+	p := hop.NewCompiler()
 	for _, file := range archive.Files {
 		if strings.HasSuffix(file.Name, ".hop") {
 			parts := strings.Split(file.Name, ".")
