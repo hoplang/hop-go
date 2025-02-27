@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"reflect"
 	"strconv"
@@ -40,6 +41,27 @@ func NewCompiler() *Compiler {
 	return &Compiler{
 		modules: map[string]string{},
 	}
+}
+
+func (c *Compiler) AddFS(fsys fs.FS) error {
+	return fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !strings.HasSuffix(path, ".hop") {
+			return nil
+		}
+		content, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return err
+		}
+		moduleName := strings.TrimSuffix(path, ".hop")
+		c.AddModule(moduleName, string(content))
+		return nil
+	})
 }
 
 func (c *Compiler) AddModule(moduleName string, template string) {
