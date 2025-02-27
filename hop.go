@@ -105,8 +105,6 @@ func (p *Program) typecheckModules() error {
 		return fmt.Errorf("sorting modules: %w", err)
 	}
 
-	fmt.Printf("%v\n", sortedModules)
-
 	// Process modules in topological order
 	for _, moduleName := range sortedModules {
 		mod := p.modules[moduleName]
