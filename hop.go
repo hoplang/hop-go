@@ -157,6 +157,16 @@ func (c *Compiler) Compile() (*Program, error) {
 	return p, nil
 }
 
+func (p *Program) GetModules() map[string][]string {
+	result := map[string][]string{}
+	for k, mod := range p.modules {
+		for f := range mod.functions {
+			result[k] = append(result[k], f)
+		}
+	}
+	return result
+}
+
 // ExecuteFunction executes a specific function from the template with the given parameters
 func (p *Program) ExecuteFunction(w io.Writer, moduleName string, functionName string, data any) error {
 	module, exists := p.modules[moduleName]
