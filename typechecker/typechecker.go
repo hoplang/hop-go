@@ -97,6 +97,50 @@ func (tc *typeChecker) unify(t1, t2 TypeExpr) error {
 	return fmt.Errorf("cannot unify %v with %v", t1, t2)
 }
 
+func constructDependencyGraph(root *html.Node) map[string]map[string]bool {
+	deps := map[string]map[string]bool{}
+	var findRenders func(n *html.Node, source string)
+	findRenders = func(n *html.Node, source string) {
+		if n.Type == html.ElementNode {
+			switch n.Data {
+			case "render":
+				for _, attr := range n.Attr {
+					if attr.Key == "function" {
+						deps[source][attr.Val] = true
+					}
+				}
+			}
+		}
+		for c := range n.ChildNodes() {
+			findRenders(c, source)
+		}
+	}
+	for c := range root.ChildNodes() {
+		if c.Type == html.ElementNode && c.Data == "import" {
+			var name string
+			for _, attr := range c.Attr {
+				if attr.Key == "function" {
+					name = attr.Val
+				}
+			}
+			deps[name] = map[string]bool{}
+		}
+		if c.Type == html.ElementNode && c.Data == "function" {
+			var name string
+			for _, attr := range c.Attr {
+				if attr.Key == "name" {
+					name = attr.Val
+				}
+			}
+			deps[name] = map[string]bool{}
+			for cc := range c.ChildNodes() {
+				findRenders(cc, name)
+			}
+		}
+	}
+	return deps
+}
+
 // Typecheck infers the types of all functions of a template.
 func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition, importedFunctions map[string]TypeExpr) (map[string]TypeExpr, error) {
 	// Collect functions
@@ -121,9 +165,11 @@ func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition, im
 		importedFunctionNames[name] = true
 	}
 
-	sortedFunctions, err := toposort.TopologicalSortFunctions(functions, importedFunctionNames)
+	dependencyGraph := constructDependencyGraph(root)
+
+	sortedFunctions, err := toposort.TopologicalSort(dependencyGraph, "function")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("type error: %w", err)
 	}
 
 	// Type check functions
@@ -135,7 +181,10 @@ func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition, im
 	}
 
 	for _, name := range sortedFunctions {
-		function := functions[name]
+		function, ok := functions[name]
+		if !ok {
+			continue
+		}
 		s := map[string]TypeExpr{}
 		if paramsAs, found := getAttribute(function, "params-as"); found {
 			tc.functionParams[name] = tc.newVar()

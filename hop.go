@@ -74,8 +74,6 @@ func (c *Compiler) Compile() (*Program, error) {
 	}
 
 	// Step 1: Parse all modules and collect dependencies
-	moduleImports := make(map[string]map[string][]string)
-
 	for moduleName, templateSrc := range c.modules {
 		parseResult, err := parser.Parse(templateSrc)
 		if err != nil {
@@ -117,11 +115,24 @@ func (c *Compiler) Compile() (*Program, error) {
 		}
 
 		p.modules[moduleName] = mod
-		moduleImports[moduleName] = mod.imports
 	}
 
 	// Step 2: Process modules in dependency order
-	sortedModules, err := toposort.TopologicalSortModules(moduleImports)
+	dependencyGraph := make(map[string]map[string]bool)
+	for name, mod := range p.modules {
+		if _, ok := dependencyGraph[name]; !ok {
+			dependencyGraph[name] = make(map[string]bool)
+		}
+		for depModuleName := range mod.imports {
+			if _, ok := dependencyGraph[depModuleName]; !ok {
+				dependencyGraph[depModuleName] = make(map[string]bool)
+			}
+			dependencyGraph[name][depModuleName] = true
+		}
+	}
+
+	// Now perform the topological sort
+	sortedModules, err := toposort.TopologicalSort(dependencyGraph, "module")
 	if err != nil {
 		return nil, fmt.Errorf("sorting modules: %w", err)
 	}
