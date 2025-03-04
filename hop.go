@@ -68,6 +68,8 @@ func (c *Compiler) Compile() (*Program, error) {
 		modules: map[string]module{},
 	}
 
+	dependencyGraph := make(map[string]map[string]bool)
+
 	// Step 1: Parse all modules and collect dependencies
 	for moduleName, templateSrc := range c.modules {
 		parseResult, err := parser.Parse(templateSrc)
@@ -82,6 +84,8 @@ func (c *Compiler) Compile() (*Program, error) {
 			functionTypes: map[string]typechecker.TypeExpr{},
 			nodePositions: parseResult.NodePositions,
 		}
+
+		dependencyGraph[moduleName] = make(map[string]bool)
 
 		for c := range parseResult.Root.ChildNodes() {
 			if c.Type != html.ElementNode {
@@ -106,27 +110,14 @@ func (c *Compiler) Compile() (*Program, error) {
 					}
 				}
 				mod.imports[module] = append(mod.imports[module], function)
+				// Add import to dependency graph
+				dependencyGraph[moduleName][module] = true
 			}
 		}
 
 		p.modules[moduleName] = mod
 	}
 
-	// Step 2: Process modules in dependency order
-	dependencyGraph := make(map[string]map[string]bool)
-	for name, mod := range p.modules {
-		if _, ok := dependencyGraph[name]; !ok {
-			dependencyGraph[name] = make(map[string]bool)
-		}
-		for depModuleName := range mod.imports {
-			if _, ok := dependencyGraph[depModuleName]; !ok {
-				dependencyGraph[depModuleName] = make(map[string]bool)
-			}
-			dependencyGraph[name][depModuleName] = true
-		}
-	}
-
-	// Now perform the topological sort
 	sortedModules, err := toposort.TopologicalSort(dependencyGraph, "module")
 	if err != nil {
 		return nil, fmt.Errorf("sorting modules: %w", err)
