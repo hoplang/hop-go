@@ -160,11 +160,6 @@ func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition, im
 		}
 	}
 
-	importedFunctionNames := make(map[string]bool)
-	for name := range importedFunctions {
-		importedFunctionNames[name] = true
-	}
-
 	dependencyGraph := constructDependencyGraph(root)
 
 	sortedFunctions, err := toposort.TopologicalSort(dependencyGraph, "function")
