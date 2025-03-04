@@ -16,11 +16,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-type function struct {
-	children []*html.Node
-	name     string
-}
-
 type module struct {
 	root          *html.Node
 	functions     map[string]*html.Node
