@@ -141,7 +141,7 @@ func constructDependencyGraph(root *html.Node) map[string]map[string]bool {
 	return deps
 }
 
-// Typecheck infers the types of all functions of a template.
+// Typecheck infers the types of all functions of a module.
 func Typecheck(root *html.Node, positions map[*html.Node]parser.NodePosition, importedFunctions map[string]TypeExpr) (map[string]TypeExpr, error) {
 	// Collect functions
 	functions := map[string]*html.Node{}
