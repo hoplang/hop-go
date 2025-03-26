@@ -1,0 +1,7 @@
+The content of textareas should be parsed as raw text.
+-- main.hop --
+<textarea>
+	<div></div>
+</textarea>
+-- output.txt --
+textarea
