@@ -1,0 +1,12 @@
+-- main.hop --
+<function name="main">
+	<form id="form">
+		<input type="text" required>
+		<button type="submit">Send</button>
+	</form>
+</function>
+-- output.txt --
+function
+	form
+		input
+		button

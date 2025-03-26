@@ -1,10 +1,83 @@
 package parser
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"golang.org/x/net/html"
+	"golang.org/x/tools/txtar"
 )
+
+// formatTree recursively traverses the HTML tree and formats it into a string.
+func formatTree(n *html.Node) string {
+	var sb strings.Builder
+	var f func(node *html.Node, indent string)
+	f = func(node *html.Node, indent string) {
+		if node.Type == html.ElementNode {
+			sb.WriteString(indent + node.Data + "\n")
+		}
+		if node.Type == html.DoctypeNode {
+			sb.WriteString(indent + "doctype\n")
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			f(child, indent+"\t")
+		}
+	}
+	// Skip the artificial root node and traverse its children.
+	for child := n.FirstChild; child != nil; child = child.NextSibling {
+		f(child, "")
+	}
+	return sb.String()
+}
+
+func TestParserTxtar(t *testing.T) {
+	// Get all txtar test files in the testdata directory.
+	files, err := filepath.Glob("test_data/tree_outputs/*.txtar")
+	if err != nil {
+		t.Fatalf("failed to glob test files: %v", err)
+	}
+	if len(files) == 0 {
+		t.Fatal("no txtar test files found in testdata")
+	}
+
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatalf("failed to read file %s: %v", file, err)
+		}
+		archive := txtar.Parse(data)
+
+		var input, expected string
+		// Loop through the files in the txtar archive.
+		for _, f := range archive.Files {
+			switch f.Name {
+			case "main.hop":
+				input = string(f.Data)
+			case "output.txt":
+				expected = strings.TrimSpace(string(f.Data))
+			}
+		}
+
+		if input == "" || expected == "" {
+			t.Fatalf("file %s: missing input or expected output", file)
+		}
+
+		result, err := Parse(input)
+		if err != nil {
+			t.Fatalf("Parse() error = %v", err)
+		}
+
+		// Format the resulting tree.
+		got := strings.TrimSpace(formatTree(result.Root))
+
+		// Compare the generated tree with the expected output.
+		if got != expected {
+			t.Errorf("test %s failed:\nGot:\n%s\nExpected:\n%s", file, got, expected)
+		}
+	}
+}
 
 func TestParseAttributePositions(t *testing.T) {
 	tests := []struct {

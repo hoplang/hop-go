@@ -1,0 +1,11 @@
+-- main.hop --
+<function name="main" params-as="data">
+	<if true="data">
+		<for each="data" as="d">
+		</for>
+	</if>
+</function>
+-- output.txt --
+function
+	if
+		for

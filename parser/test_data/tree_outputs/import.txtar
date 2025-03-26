@@ -1,0 +1,12 @@
+-- main.hop --
+<import function="foo" from="bar"></import>
+
+<function name="main" params-as="p">
+	<render function="foo"></render>
+	<render function="foo"></render>
+</function>
+-- output.txt --
+import
+function
+	render
+	render

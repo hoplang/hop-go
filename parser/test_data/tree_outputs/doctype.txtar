@@ -1,0 +1,15 @@
+-- main.hop --
+<function name="main" params-as="foo">
+	<!DOCTYPE html>
+	<html>
+	<body>
+	<div>hello world</div>
+	</body>
+	</html>
+</function>
+-- output.txt --
+function
+	doctype
+	html
+		body
+			div

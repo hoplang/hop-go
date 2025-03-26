@@ -1,0 +1,10 @@
+-- main.hop --
+<function name="main" params-as="foo">
+	<for each="foo" as="v">
+		<div inner-text="v"></div>
+	</for>
+</function>
+-- output.txt --
+function
+	for
+		div
