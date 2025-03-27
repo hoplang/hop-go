@@ -1,0 +1,9 @@
+-- main.hop --
+<function name="main" params-as="foo">
+	<script>
+		const x = "<div></div>";
+	</script>
+</function>
+-- output.txt --
+function
+	script
