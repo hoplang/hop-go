@@ -1,0 +1,4 @@
+-- input.html --
+<h1 foo = "bar">
+-- tokens.txt --
+StartTag(h1) 1:1-1:17
