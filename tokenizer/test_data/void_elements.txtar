@@ -1,0 +1,21 @@
+-- input.html --
+<function name="main">
+	<form id="form">
+		<input type="text" required>
+		<button type="submit">Send</button>
+	</form>
+</function>
+-- tokens.txt --
+StartTag(function) 1:1-1:23
+Text 1:23-2:2
+StartTag(form) 2:2-2:18
+Text 2:18-3:3
+StartTag(input) 3:3-3:31
+Text 3:31-4:3
+StartTag(button) 4:3-4:25
+Text 4:25-4:29
+EndTag(button) 4:29-4:38
+Text 4:38-5:2
+EndTag(form) 5:2-5:9
+Text 5:9-6:1
+EndTag(function) 6:1-6:12

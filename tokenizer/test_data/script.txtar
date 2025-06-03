@@ -1,0 +1,14 @@
+-- input.html --
+<function name="main" params-as="foo">
+	<script>
+		const x = "<div></div>";
+	</script>
+</function>
+-- tokens.txt --
+StartTag(function) 1:1-1:39
+Text 1:39-2:2
+StartTag(script) 2:2-2:10
+Text 2:10-4:2
+EndTag(script) 4:2-4:11
+Text 4:11-5:1
+EndTag(function) 5:1-5:12
